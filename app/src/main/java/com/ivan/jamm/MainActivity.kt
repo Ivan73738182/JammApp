@@ -2,6 +2,8 @@ package com.ivan.jamm
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +16,14 @@ import java.io.IOException
 class MainActivity : AppCompatActivity() {
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
+    private val handler = Handler(Looper.getMainLooper())
+    
+    private val pingRunnable = object : Runnable {
+        override fun run() {
+            pingServer()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,8 +37,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnJoin.setOnClickListener {
-            Toast.makeText(this, "Вход по коду скоро будет!", Toast.LENGTH_SHORT).show()
+            // Переходим на экран ввода кода
+            val intent = Intent(this, JoinRoomActivity::class.java)
+            startActivity(intent)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handler.post(pingRunnable)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(pingRunnable)
+    }
+
+    private fun pingServer() {
+        val request = Request.Builder().url(serverUrl).get().build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) { response.close() }
+        })
     }
 
     private fun createRoom() {
@@ -41,9 +71,7 @@ class MainActivity : AppCompatActivity() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Ошибка сети: ${e.message}", Toast.LENGTH_LONG).show()
-                }
+                runOnUiThread { Toast.makeText(this@MainActivity, "Ошибка сети: ${e.message}", Toast.LENGTH_LONG).show() }
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -55,11 +83,9 @@ class MainActivity : AppCompatActivity() {
                             val room = json.getJSONObject("room")
                             val code = room.getString("code")
                             
-                            // Открываем новый экран и передаем туда код
                             val intent = Intent(this@MainActivity, RoomCodeActivity::class.java)
                             intent.putExtra("ROOM_CODE", code)
                             startActivity(intent)
-                            
                         } catch (e: Exception) {
                             Toast.makeText(this@MainActivity, "Ошибка парсинга", Toast.LENGTH_SHORT).show()
                         }

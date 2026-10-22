@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:background="@drawable/bg_gradient">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Вход в комнату"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Введите 6-значный код"
+        android:textSize="16sp"
+        android:textColor="#AAAAAA"
+        android:layout_marginBottom="32dp"/>
+
+    <EditText
+        android:id="@+id/etRoomCode"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@drawable/btn_neon_purple"
+        android:paddingHorizontal="16dp"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:inputType="number"
+        android:maxLength="6"
+        android:hint="000000"
+        android:textColorHint="#555555"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/btnConfirmJoin"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="ВОЙТИ"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#121212"
+        android:background="@drawable/btn_neon_cyan"
+        android:stateListAnimator="@null"/>
+
+</LinearLayout>

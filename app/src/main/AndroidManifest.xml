@@ -8,9 +8,7 @@
         android:label="Jamm"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -19,6 +17,7 @@
         
         <activity android:name=".RoomCodeActivity" />
         <activity android:name=".PlaylistActivity" />
+        <activity android:name=".JoinRoomActivity" />
         
     </application>
 
