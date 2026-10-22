@@ -45,15 +45,36 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"/>
 
-    <Button
-        android:id="@+id/btnAddTrack"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="+ Добавить трек по ссылке"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:background="@drawable/btn_neon_purple"
-        android:stateListAnimator="@null" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <Button
+            android:id="@+id/btnAddTrack"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="+ Добавить"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_neon_purple"
+            android:stateListAnimator="@null"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/btnPlayPause"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="⏸ Пауза"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#121212"
+            android:background="@drawable/btn_neon_cyan"
+            android:stateListAnimator="@null"/>
+    </LinearLayout>
 
 </LinearLayout>

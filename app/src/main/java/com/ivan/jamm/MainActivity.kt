@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Button
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -32,12 +33,27 @@ class MainActivity : AppCompatActivity() {
         val btnCreate = findViewById<Button>(R.id.btnCreateRoom)
         val btnJoin = findViewById<Button>(R.id.btnJoinRoom)
 
-        btnCreate.setOnClickListener {
-            createRoom()
+        // Проверяем, сохранена ли комната
+        val prefs = getSharedPreferences("JammPrefs", MODE_PRIVATE)
+        val savedCode = prefs.getString("SAVED_ROOM_CODE", null)
+
+        if (savedCode != null) {
+            AlertDialog.Builder(this)
+                .setTitle("С возвращением!")
+                .setMessage("Вы недавно были в комнате $savedCode. Войти снова?")
+                .setPositiveButton("Да") { _, _ ->
+                    val intent = Intent(this, PlaylistActivity::class.java)
+                    intent.putExtra("ROOM_CODE", savedCode)
+                    startActivity(intent)
+                }
+                .setNegativeButton("Нет, выйти") { _, _ ->
+                    prefs.edit().remove("SAVED_ROOM_CODE").apply()
+                }
+                .show()
         }
 
+        btnCreate.setOnClickListener { createRoom() }
         btnJoin.setOnClickListener {
-            // Переходим на экран ввода кода
             val intent = Intent(this, JoinRoomActivity::class.java)
             startActivity(intent)
         }
@@ -63,7 +79,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun createRoom() {
         Toast.makeText(this, "Стучимся на сервер...", Toast.LENGTH_SHORT).show()
-        
         val request = Request.Builder()
             .url("$serverUrl/api/create-room")
             .post("{}".toRequestBody("application/json".toMediaType()))
@@ -71,26 +86,26 @@ class MainActivity : AppCompatActivity() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread { Toast.makeText(this@MainActivity, "Ошибка сети: ${e.message}", Toast.LENGTH_LONG).show() }
+                runOnUiThread { Toast.makeText(this@MainActivity, "Ошибка сети", Toast.LENGTH_LONG).show() }
             }
-
             override fun onResponse(call: Call, response: Response) {
                 val responseBody = response.body?.string()
                 runOnUiThread {
                     if (response.isSuccessful && responseBody != null) {
                         try {
                             val json = JSONObject(responseBody)
-                            val room = json.getJSONObject("room")
-                            val code = room.getString("code")
+                            val code = json.getJSONObject("room").getString("code")
                             
+                            // Сохраняем код комнаты!
+                            getSharedPreferences("JammPrefs", MODE_PRIVATE)
+                                .edit().putString("SAVED_ROOM_CODE", code).apply()
+
                             val intent = Intent(this@MainActivity, RoomCodeActivity::class.java)
                             intent.putExtra("ROOM_CODE", code)
                             startActivity(intent)
                         } catch (e: Exception) {
                             Toast.makeText(this@MainActivity, "Ошибка парсинга", Toast.LENGTH_SHORT).show()
                         }
-                    } else {
-                        Toast.makeText(this@MainActivity, "Ошибка сервера: ${response.code}", Toast.LENGTH_SHORT).show()
                     }
                 }
             }

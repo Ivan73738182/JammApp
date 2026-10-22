@@ -21,62 +21,80 @@ class PlaylistActivity : AppCompatActivity() {
     private val client = OkHttpClient()
     
     private var mediaPlayer: MediaPlayer? = null
+    private var isPlaying = false
     private val trackUrls = mutableListOf<String>()
     private val tracksList = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
+    private lateinit var btnPlayPause: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
 
         roomCode = intent.getStringExtra("ROOM_CODE") ?: "000000"
-        
         val tvCode = findViewById<TextView>(R.id.tvPlaylistCode)
         tvCode.text = "Код комнаты: $roomCode"
 
         val lvTracks = findViewById<ListView>(R.id.lvTracks)
         val btnAdd = findViewById<Button>(R.id.btnAddTrack)
         val etUrl = findViewById<EditText>(R.id.etTrackUrl)
+        btnPlayPause = findViewById(R.id.btnPlayPause)
 
         adapter = ArrayAdapter(this, R.layout.simple_list_item_white, tracksList)
         lvTracks.adapter = adapter
 
         loadTracks()
 
-        // Нажатие на трек в списке -> включаем музыку
         lvTracks.setOnItemClickListener { _, _, position, _ ->
             if (position < trackUrls.size) {
                 playMusic(trackUrls[position])
             }
         }
 
-        // Добавление трека по ссылке
         btnAdd.setOnClickListener {
             val url = etUrl.text.toString().trim()
-            if (url.isEmpty()) {
-                Toast.makeText(this, "Вставьте ссылку", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            // Берем название из последней части ссылки
-            val title = url.substringAfterLast("/").take(20) 
+            if (url.isEmpty()) return@setOnClickListener
+            val title = url.substringAfterLast("/").take(20)
             addTrackToServer(title, "Неизвестен", "Пользователь", url)
             etUrl.text.clear()
+        }
+
+        btnPlayPause.setOnClickListener {
+            if (mediaPlayer != null) {
+                if (isPlaying) {
+                    mediaPlayer?.pause()
+                    btnPlayPause.text = "▶ Играть"
+                    isPlaying = false
+                } else {
+                    mediaPlayer?.start()
+                    btnPlayPause.text = "⏸ Пауза"
+                    isPlaying = true
+                }
+            }
         }
     }
 
     private fun playMusic(url: String) {
         try {
-            mediaPlayer?.release() // Останавливаем предыдущую
+            mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(url)
-                setOnPreparedListener { start() }
+                setOnPreparedListener { 
+                    start() 
+                    isPlaying = true
+                    btnPlayPause.text = "⏸ Пауза"
+                }
+                setOnCompletionListener {
+                    isPlaying = false
+                    btnPlayPause.text = "▶ Играть"
+                }
                 setOnErrorListener { _, _, _ ->
-                    Toast.makeText(this@PlaylistActivity, "Ошибка воспроизведения (возможно, плохая ссылка)", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PlaylistActivity, "Ошибка воспроизведения", Toast.LENGTH_SHORT).show()
                     true
                 }
                 prepareAsync()
             }
-            Toast.makeText(this, "Загрузка трека...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Загрузка...", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -126,10 +144,8 @@ class PlaylistActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 runOnUiThread {
                     if (response.isSuccessful) {
-                        Toast.makeText(this@PlaylistActivity, "Трек добавлен!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PlaylistActivity, "Добавлено!", Toast.LENGTH_SHORT).show()
                         loadTracks()
-                    } else {
-                        Toast.makeText(this@PlaylistActivity, "Ошибка сервера", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
