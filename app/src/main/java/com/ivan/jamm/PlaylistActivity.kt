@@ -1,5 +1,6 @@
 package com.ivan.jamm
 
+import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.widget.ArrayAdapter
@@ -33,7 +34,17 @@ class PlaylistActivity : AppCompatActivity() {
 
         roomCode = intent.getStringExtra("ROOM_CODE") ?: "000000"
         val tvCode = findViewById<TextView>(R.id.tvPlaylistCode)
-        tvCode.text = "Код комнаты: $roomCode"
+        tvCode.text = "Код комнаты: $roomCode (удерживайте для выхода)"
+
+        // Долгое нажатие на код комнаты = выход
+        tvCode.setOnLongClickListener {
+            getSharedPreferences("JammPrefs", MODE_PRIVATE).edit().remove("SAVED_ROOM_CODE").apply()
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+            true
+        }
 
         val lvTracks = findViewById<ListView>(R.id.lvTracks)
         val btnAdd = findViewById<Button>(R.id.btnAddTrack)
@@ -158,4 +169,3 @@ class PlaylistActivity : AppCompatActivity() {
         mediaPlayer = null
     }
 }
-

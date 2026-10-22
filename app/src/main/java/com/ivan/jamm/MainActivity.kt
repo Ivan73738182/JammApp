@@ -6,7 +6,6 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Button
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -28,29 +27,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        val btnCreate = findViewById<Button>(R.id.btnCreateRoom)
-        val btnJoin = findViewById<Button>(R.id.btnJoinRoom)
-
-        // Проверяем, сохранена ли комната
+        // Проверяем сохраненную комнату ДО загрузки экрана
         val prefs = getSharedPreferences("JammPrefs", MODE_PRIVATE)
         val savedCode = prefs.getString("SAVED_ROOM_CODE", null)
 
         if (savedCode != null) {
-            AlertDialog.Builder(this)
-                .setTitle("С возвращением!")
-                .setMessage("Вы недавно были в комнате $savedCode. Войти снова?")
-                .setPositiveButton("Да") { _, _ ->
-                    val intent = Intent(this, PlaylistActivity::class.java)
-                    intent.putExtra("ROOM_CODE", savedCode)
-                    startActivity(intent)
-                }
-                .setNegativeButton("Нет, выйти") { _, _ ->
-                    prefs.edit().remove("SAVED_ROOM_CODE").apply()
-                }
-                .show()
+            // Если код есть — сразу открываем плейлист и закрываем главный экран
+            val intent = Intent(this, PlaylistActivity::class.java)
+            intent.putExtra("ROOM_CODE", savedCode)
+            startActivity(intent)
+            finish()
+            return
         }
+
+        setContentView(R.layout.activity_main)
+
+        val btnCreate = findViewById<Button>(R.id.btnCreateRoom)
+        val btnJoin = findViewById<Button>(R.id.btnJoinRoom)
 
         btnCreate.setOnClickListener { createRoom() }
         btnJoin.setOnClickListener {
@@ -96,7 +90,6 @@ class MainActivity : AppCompatActivity() {
                             val json = JSONObject(responseBody)
                             val code = json.getJSONObject("room").getString("code")
                             
-                            // Сохраняем код комнаты!
                             getSharedPreferences("JammPrefs", MODE_PRIVATE)
                                 .edit().putString("SAVED_ROOM_CODE", code).apply()
 
