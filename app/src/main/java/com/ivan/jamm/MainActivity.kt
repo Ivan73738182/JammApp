@@ -1,5 +1,6 @@
 package com.ivan.jamm
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.Toast
@@ -11,7 +12,6 @@ import org.json.JSONObject
 import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
-    // Наш сервер на Render
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
 
@@ -27,7 +27,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnJoin.setOnClickListener {
-            // Пока просто заглушка, экран входа сделаем чуть позже
             Toast.makeText(this, "Вход по коду скоро будет!", Toast.LENGTH_SHORT).show()
         }
     }
@@ -55,7 +54,12 @@ class MainActivity : AppCompatActivity() {
                             val json = JSONObject(responseBody)
                             val room = json.getJSONObject("room")
                             val code = room.getString("code")
-                            Toast.makeText(this@MainActivity, "Комната создана! Код: $code", Toast.LENGTH_LONG).show()
+                            
+                            // Открываем новый экран и передаем туда код
+                            val intent = Intent(this@MainActivity, RoomCodeActivity::class.java)
+                            intent.putExtra("ROOM_CODE", code)
+                            startActivity(intent)
+                            
                         } catch (e: Exception) {
                             Toast.makeText(this@MainActivity, "Ошибка парсинга", Toast.LENGTH_SHORT).show()
                         }

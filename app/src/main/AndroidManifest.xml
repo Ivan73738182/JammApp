@@ -16,6 +16,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Добавили новый экран -->
+        <activity android:name=".RoomCodeActivity" />
+        
     </application>
 
 </manifest>
