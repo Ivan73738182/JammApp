@@ -21,7 +21,7 @@ class PlaylistActivity : AppCompatActivity() {
     private val client = OkHttpClient()
     
     private var mediaPlayer: MediaPlayer? = null
-    private var isPlaying = false // Исправлено на var
+    private var isPlaying = false
     private val trackUrls = mutableListOf<String>()
     private val tracksList = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
