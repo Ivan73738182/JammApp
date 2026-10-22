@@ -14,13 +14,14 @@ class RoomCodeActivity : AppCompatActivity() {
         val tvCode = findViewById<TextView>(R.id.tvRoomCode)
         val btnGo = findViewById<Button>(R.id.btnGoToPlaylist)
 
-        // Получаем код, который передали из MainActivity
         val roomCode = intent.getStringExtra("ROOM_CODE") ?: "000000"
         tvCode.text = roomCode
 
         btnGo.setOnClickListener {
-            // Пока заглушка для следующего экрана
-            android.widget.Toast.makeText(this, "Плейлист скоро будет!", android.widget.Toast.LENGTH_SHORT).show()
+            // Переходим на экран плейлиста
+            val intent = Intent(this, PlaylistActivity::class.java)
+            intent.putExtra("ROOM_CODE", roomCode)
+            startActivity(intent)
         }
     }
 }

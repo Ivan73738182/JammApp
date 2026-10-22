@@ -17,8 +17,8 @@
             </intent-filter>
         </activity>
         
-        <!-- Добавили новый экран -->
         <activity android:name=".RoomCodeActivity" />
+        <activity android:name=".PlaylistActivity" />
         
     </application>
 
