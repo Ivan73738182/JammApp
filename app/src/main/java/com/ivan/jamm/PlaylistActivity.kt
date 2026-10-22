@@ -21,7 +21,7 @@ class PlaylistActivity : AppCompatActivity() {
     private val client = OkHttpClient()
     
     private var mediaPlayer: MediaPlayer? = null
-    private var isPlaying = false
+    private var isMusicPlaying = false
     private val trackUrls = mutableListOf<String>()
     private val tracksList = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
@@ -61,14 +61,14 @@ class PlaylistActivity : AppCompatActivity() {
 
         btnPlayPause.setOnClickListener {
             if (mediaPlayer != null) {
-                if (isPlaying) {
+                if (isMusicPlaying) {
                     mediaPlayer?.pause()
                     btnPlayPause.text = "▶ Играть"
-                    isPlaying = false
+                    isMusicPlaying = false
                 } else {
                     mediaPlayer?.start()
                     btnPlayPause.text = "⏸ Пауза"
-                    isPlaying = true
+                    isMusicPlaying = true
                 }
             }
         }
@@ -81,11 +81,11 @@ class PlaylistActivity : AppCompatActivity() {
                 setDataSource(url)
                 setOnPreparedListener { 
                     start() 
-                    isPlaying = true
+                    isMusicPlaying = true
                     btnPlayPause.text = "⏸ Пауза"
                 }
                 setOnCompletionListener {
-                    isPlaying = false
+                    isMusicPlaying = false
                     btnPlayPause.text = "▶ Играть"
                 }
                 setOnErrorListener { _, _, _ ->
