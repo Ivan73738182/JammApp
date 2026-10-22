@@ -158,3 +158,4 @@ class PlaylistActivity : AppCompatActivity() {
         mediaPlayer = null
     }
 }
+
