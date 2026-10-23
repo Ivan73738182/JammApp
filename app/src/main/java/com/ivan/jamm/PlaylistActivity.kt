@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
@@ -26,6 +28,15 @@ class PlaylistActivity : AppCompatActivity() {
     private val tracksList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
     private lateinit var btnPlayPause: Button
+
+    // Для автообновления
+    private val handler = Handler(Looper.getMainLooper())
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            loadTracks()
+            handler.postDelayed(this, 5000) // Каждые 5 секунд
+        }
+    }
 
     data class Track(
         val id: String,
@@ -60,8 +71,6 @@ class PlaylistActivity : AppCompatActivity() {
         adapter = TrackAdapter(this, tracksList)
         lvTracks.adapter = adapter
 
-        loadTracks()
-
         lvTracks.setOnItemClickListener { _, _, position, _ ->
             if (position < tracksList.size) {
                 playMusic(
@@ -85,6 +94,18 @@ class PlaylistActivity : AppCompatActivity() {
             val intent = Intent(this, JammPlayerService::class.java)
             startService(intent)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Запускаем автообновление
+        handler.post(updateRunnable)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Останавливаем, когда экран не виден
+        handler.removeCallbacks(updateRunnable)
     }
 
     private inner class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
@@ -228,18 +249,22 @@ class PlaylistActivity : AppCompatActivity() {
                         try {
                             val json = JSONObject(responseBody)
                             val tracks = json.getJSONArray("tracks")
-                            tracksList.clear()
-                            for (i in 0 until tracks.length()) {
-                                val track = tracks.getJSONObject(i)
-                                tracksList.add(Track(
-                                    id = track.getString("id"),
-                                    title = track.getString("title"),
-                                    artist = track.getString("artist"),
-                                    url = track.optString("url", ""),
-                                    coverUrl = track.optString("cover_url", null)
-                                ))
+                            
+                            // Проверяем, изменилось ли количество треков, чтобы не дёргать список зря
+                            if (tracksList.size != tracks.length()) {
+                                tracksList.clear()
+                                for (i in 0 until tracks.length()) {
+                                    val track = tracks.getJSONObject(i)
+                                    tracksList.add(Track(
+                                        id = track.getString("id"),
+                                        title = track.getString("title"),
+                                        artist = track.getString("artist"),
+                                        url = track.optString("url", ""),
+                                        coverUrl = track.optString("cover_url", null)
+                                    ))
+                                }
+                                adapter.notifyDataSetChanged()
                             }
-                            adapter.notifyDataSetChanged()
                         } catch (e: Exception) {}
                     }
                 }
