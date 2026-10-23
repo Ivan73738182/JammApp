@@ -15,17 +15,16 @@ import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import com.bumptech.glide.Glide
 
-class JammPlayerService : Service() {
+class JammMusicService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var musicIsPlaying = false
     private lateinit var mediaSession: MediaSessionCompat
 
-    // Списки треков
     private var urlsList = ArrayList<String>()
     private var titlesList = ArrayList<String>()
     private var artistsList = ArrayList<String>()
     private var coversList = ArrayList<String>()
-    private var currentPosition = 0 // <--- ТУТ VAR
+    private var trackPosition = 0 // Изменили имя переменной
 
     private val stopHandler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable {
@@ -54,15 +53,15 @@ class JammPlayerService : Service() {
                     updateNotification()
                 }
                 override fun onSkipToNext() {
-                    if (currentPosition < urlsList.size - 1) {
-                        currentPosition++
-                        playTrack(currentPosition)
+                    if (trackPosition < urlsList.size - 1) {
+                        trackPosition++
+                        playTrack(trackPosition)
                     }
                 }
                 override fun onSkipToPrevious() {
-                    if (currentPosition > 0) {
-                        currentPosition--
-                        playTrack(currentPosition)
+                    if (trackPosition > 0) {
+                        trackPosition--
+                        playTrack(trackPosition)
                     }
                 }
             })
@@ -87,8 +86,8 @@ class JammPlayerService : Service() {
             titlesList = titles
             artistsList = artists ?: arrayListOf()
             coversList = covers ?: arrayListOf()
-            currentPosition = pos
-            playTrack(currentPosition)
+            trackPosition = pos
+            playTrack(trackPosition)
         } else {
             if (mediaPlayer != null) {
                 if (musicIsPlaying) {
@@ -122,9 +121,9 @@ class JammPlayerService : Service() {
                     updateMediaSession()
                 }
                 setOnCompletionListener {
-                    if (currentPosition < urlsList.size - 1) {
-                        currentPosition++
-                        playTrack(currentPosition)
+                    if (trackPosition < urlsList.size - 1) {
+                        trackPosition++
+                        playTrack(trackPosition)
                     } else {
                         musicIsPlaying = false
                         startStopTimer()
@@ -147,13 +146,13 @@ class JammPlayerService : Service() {
     }
 
     private fun updateMediaSession() {
-        if (currentPosition >= titlesList.size) return
+        if (trackPosition >= titlesList.size) return
 
         val metadataBuilder = MediaMetadataCompat.Builder()
-            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, titlesList[currentPosition])
-            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artistsList.getOrNull(currentPosition) ?: "Неизвестен")
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, titlesList[trackPosition])
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artistsList.getOrNull(trackPosition) ?: "Неизвестен")
 
-        val coverUrl = coversList.getOrNull(currentPosition)
+        val coverUrl = coversList.getOrNull(trackPosition)
         if (!coverUrl.isNullOrEmpty()) {
             try {
                 val bitmap: Bitmap = Glide.with(this)
@@ -186,21 +185,21 @@ class JammPlayerService : Service() {
     private fun updateNotification() {
         updateMediaSession()
         
-        if (currentPosition >= titlesList.size) return
+        if (trackPosition >= titlesList.size) return
 
-        val title = titlesList[currentPosition]
-        val artist = artistsList.getOrNull(currentPosition) ?: "Неизвестен"
+        val title = titlesList[trackPosition]
+        val artist = artistsList.getOrNull(trackPosition) ?: "Неизвестен"
 
         val prevIntent = PendingIntent.getService(
-            this, 2, Intent(this, JammPlayerService::class.java).apply { action = "PREV" },
+            this, 2, Intent(this, JammMusicService::class.java).apply { action = "PREV" },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val playPauseIntent = PendingIntent.getService(
-            this, 1, Intent(this, JammPlayerService::class.java),
+            this, 1, Intent(this, JammMusicService::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val nextIntent = PendingIntent.getService(
-            this, 3, Intent(this, JammPlayerService::class.java).apply { action = "NEXT" },
+            this, 3, Intent(this, JammMusicService::class.java).apply { action = "NEXT" },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

@@ -77,7 +77,7 @@ class PlaylistActivity : AppCompatActivity() {
         }
 
         btnPlayPause.setOnClickListener {
-            val intent = Intent(this, JammPlayerService::class.java)
+            val intent = Intent(this, JammMusicService::class.java)
             startService(intent)
         }
     }
@@ -195,9 +195,6 @@ class PlaylistActivity : AppCompatActivity() {
 
     private fun playMusic(position: Int) {
         try {
-            val track = tracksList[position]
-            
-            // Собираем списки URL, названий и исполнителей
             val urls = ArrayList<String>()
             val titles = ArrayList<String>()
             val artists = ArrayList<String>()
@@ -210,7 +207,7 @@ class PlaylistActivity : AppCompatActivity() {
                 covers.add(t.coverUrl ?: "")
             }
 
-            val intent = Intent(this, JammPlayerService::class.java).apply {
+            val intent = Intent(this, JammMusicService::class.java).apply {
                 putStringArrayListExtra("URLS", urls)
                 putStringArrayListExtra("TITLES", titles)
                 putStringArrayListExtra("ARTISTS", artists)
