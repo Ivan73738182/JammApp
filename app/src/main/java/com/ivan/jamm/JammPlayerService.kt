@@ -25,7 +25,7 @@ class JammPlayerService : Service() {
     private var titlesList = ArrayList<String>()
     private var artistsList = ArrayList<String>()
     private var coversList = ArrayList<String>()
-    private var currentPosition = 0
+    private var currentPosition = 0 // <--- ТУТ VAR
 
     private val stopHandler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable {
@@ -90,7 +90,6 @@ class JammPlayerService : Service() {
             currentPosition = pos
             playTrack(currentPosition)
         } else {
-            // Просто пауза/играть
             if (mediaPlayer != null) {
                 if (musicIsPlaying) {
                     mediaPlayer?.pause()
@@ -123,7 +122,6 @@ class JammPlayerService : Service() {
                     updateMediaSession()
                 }
                 setOnCompletionListener {
-                    // Автопереход на следующий
                     if (currentPosition < urlsList.size - 1) {
                         currentPosition++
                         playTrack(currentPosition)
@@ -193,7 +191,6 @@ class JammPlayerService : Service() {
         val title = titlesList[currentPosition]
         val artist = artistsList.getOrNull(currentPosition) ?: "Неизвестен"
 
-        // Кнопки
         val prevIntent = PendingIntent.getService(
             this, 2, Intent(this, JammPlayerService::class.java).apply { action = "PREV" },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
