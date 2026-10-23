@@ -77,7 +77,6 @@ class PlaylistActivity : AppCompatActivity() {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
             val title = url.substringAfterLast("/").take(20)
-            // Пока cover_url пустая (добавим позже)
             addTrackToServer(title, "Неизвестен", "Пользователь", url, "")
             etUrl.text.clear()
         }
@@ -97,7 +96,7 @@ class PlaylistActivity : AppCompatActivity() {
         }
     }
 
-    private inner class TrackAdapter(context: Context, private val tracks: List<Track>) : BaseAdapter() {
+    private class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
         private val inflater = LayoutInflater.from(context)
 
         override fun getCount(): Int = tracks.size
@@ -115,12 +114,11 @@ class PlaylistActivity : AppCompatActivity() {
 
             tvTitle.text = track.title
             tvArtist.text = track.artist
-            tvPlay.text = "⋮" // Три точки, чтобы было понятно, что можно зажать
+            tvPlay.text = "⋮"
 
             if (!track.coverUrl.isNullOrEmpty()) {
                 Glide.with(context).load(track.coverUrl).into(ivCover)
             } else {
-                // Если нет обложки — ставим системную иконку ноты
                 ivCover.setImageResource(android.R.drawable.ic_media_play)
                 ivCover.setBackgroundColor(0xFF333333.toInt())
             }
