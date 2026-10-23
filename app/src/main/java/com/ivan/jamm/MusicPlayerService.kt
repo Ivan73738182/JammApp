@@ -134,7 +134,7 @@ class MusicPlayerService : Service() {
     }
 
     private fun getPauseIntent(): PendingIntent {
-        val intent = Intent(this, MusicService::class.java)
+        val intent = Intent(this, MusicPlayerService::class.java)
         return PendingIntent.getService(
             this, 1, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -162,4 +162,3 @@ class MusicPlayerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 }
-// force update
