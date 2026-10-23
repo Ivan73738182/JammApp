@@ -76,12 +76,11 @@ class PlaylistActivity : AppCompatActivity() {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
 
-            // Пытаемся вытащить название из ссылки
             val parsedTitle = extractTitleFromUrl(url)
 
             val input = EditText(this)
             input.hint = "Название песни (необязательно)"
-            input.setText(parsedTitle) // Подставляем распарсенное название
+            input.setText(parsedTitle)
             
             AlertDialog.Builder(this)
                 .setTitle("Добавить трек")
@@ -104,10 +103,8 @@ class PlaylistActivity : AppCompatActivity() {
         }
     }
 
-    // Функция для извлечения названия из ссылки
     private fun extractTitleFromUrl(url: String): String {
         try {
-            // 1. Пытаемся найти параметр title= или name=
             val uri = java.net.URI(url)
             val query = uri.query
             if (query != null) {
@@ -122,14 +119,10 @@ class PlaylistActivity : AppCompatActivity() {
                 }
             }
             
-            // 2. Если параметров нет, берем последнюю часть пути
             var lastPart = url.substringAfterLast("/")
-            // Убираем возможные параметры в конце (?siren=1)
             lastPart = lastPart.substringBefore("?")
-            // Убираем расширение файла (.mp3, .m4a и т.д.)
             lastPart = lastPart.substringBeforeLast(".")
             
-            // Если ничего не осталось, возвращаем дефолт
             if (lastPart.isEmpty() || lastPart == "index") {
                 return "Неизвестный трек"
             }
@@ -160,10 +153,14 @@ class PlaylistActivity : AppCompatActivity() {
             tvArtist.text = track.artist
 
             if (!track.coverUrl.isNullOrEmpty()) {
+                // Если есть обложка из интернета — грузим её
                 Glide.with(context).load(track.coverUrl).into(ivCover)
+                ivCover.scaleType = ImageView.ScaleType.CENTER_CROP
             } else {
-                ivCover.setImageDrawable(null)
-                ivCover.setBackgroundColor(0xFF333333.toInt())
+                // Если обложки нет — ставим нашу иконку, но так, чтобы она была внутри квадрата
+                ivCover.setImageResource(R.drawable.app_icon)
+                ivCover.scaleType = ImageView.ScaleType.CENTER_INSIDE // Вписываем картинку целиком, не растягивая
+                ivCover.setBackgroundColor(0xFF1A1A1A.toInt()) // Темный фон под иконкой
             }
 
             btnMenu.setOnClickListener {
