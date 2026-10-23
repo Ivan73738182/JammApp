@@ -3,6 +3,7 @@ package com.ivan.jamm
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -65,7 +66,7 @@ class PlaylistActivity : AppCompatActivity() {
         loadTracks()
 
         lvTracks.setOnItemClickListener { _, _, position, _ ->
-            if (position < tracksList.size) playMusic(tracksList[position].url)
+            if (position < tracksList.size) playMusic(tracksList[position].url, tracksList[position].title, tracksList[position].artist)
         }
 
         btnAdd.setOnClickListener {
@@ -77,17 +78,9 @@ class PlaylistActivity : AppCompatActivity() {
         }
 
         btnPlayPause.setOnClickListener {
-            if (mediaPlayer != null) {
-                if (isMusicPlaying) {
-                    mediaPlayer?.pause()
-                    btnPlayPause.text = "▶ Играть"
-                    isMusicPlaying = false
-                } else {
-                    mediaPlayer?.start()
-                    btnPlayPause.text = "⏸ Пауза"
-                    isMusicPlaying = true
-                }
-            }
+            // Логика паузы (теперь через сервис)
+            val intent = Intent(this, MusicService::class.java)
+            startService(intent)
         }
     }
 
@@ -113,7 +106,6 @@ class PlaylistActivity : AppCompatActivity() {
             if (!track.coverUrl.isNullOrEmpty()) {
                 Glide.with(context).load(track.coverUrl).into(ivCover)
             } else {
-                // Убираем системную иконку, оставляем просто пустой фон
                 ivCover.setImageDrawable(null)
                 ivCover.setBackgroundColor(0xFF333333.toInt())
             }
@@ -203,25 +195,17 @@ class PlaylistActivity : AppCompatActivity() {
         })
     }
 
-    private fun playMusic(url: String) {
+    private fun playMusic(url: String, title: String, artist: String) {
         try {
-            mediaPlayer?.release()
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(url)
-                setOnPreparedListener { 
-                    start() 
-                    isMusicPlaying = true
-                    btnPlayPause.text = "⏸ Пауза"
-                }
-                setOnCompletionListener {
-                    isMusicPlaying = false
-                    btnPlayPause.text = "▶ Играть"
-                }
-                setOnErrorListener { _, _, _ ->
-                    Toast.makeText(this@PlaylistActivity, "Ошибка воспроизведения", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                prepareAsync()
+            val intent = Intent(this, MusicService::class.java).apply {
+                putExtra("URL", url)
+                putExtra("TITLE", title)
+                putExtra("ARTIST", artist)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
             }
             Toast.makeText(this, "Загрузка...", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
@@ -288,7 +272,6 @@ class PlaylistActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        // Не убиваем сервис, пусть играет в фоне
     }
 }

@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
         android:allowBackup="true"
@@ -18,6 +21,8 @@
         <activity android:name=".RoomCodeActivity" />
         <activity android:name=".PlaylistActivity" />
         <activity android:name=".JoinRoomActivity" />
+        
+        <service android:name=".MusicService" android:foregroundServiceType="mediaPlayback" />
         
     </application>
 
