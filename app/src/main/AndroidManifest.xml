@@ -10,6 +10,7 @@
         android:allowBackup="true"
         android:label="Jamm"
         android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:icon="@mipmap/ic_launcher"
         
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
