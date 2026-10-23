@@ -23,7 +23,7 @@
         <activity android:name=".JoinRoomActivity" />
         
         <!-- Новое имя сервиса -->
-        <service android:name=".MusicPlayerService" android:foregroundServiceType="mediaPlayback" />
+        <service android:name=".JammPlayerService" android:foregroundServiceType="mediaPlayback" />
         
     </application>
 

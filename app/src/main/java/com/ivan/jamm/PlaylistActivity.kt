@@ -23,7 +23,6 @@ class PlaylistActivity : AppCompatActivity() {
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
     
-    private var isMusicPlaying = false
     private val tracksList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
     private lateinit var btnPlayPause: Button
@@ -78,7 +77,7 @@ class PlaylistActivity : AppCompatActivity() {
         }
 
         btnPlayPause.setOnClickListener {
-            val intent = Intent(this, MusicPlayerService::class.java)
+            val intent = Intent(this, JammPlayerService::class.java)
             startService(intent)
         }
     }
@@ -196,7 +195,7 @@ class PlaylistActivity : AppCompatActivity() {
 
     private fun playMusic(url: String, title: String, artist: String) {
         try {
-            val intent = Intent(this, MusicPlayerService::class.java).apply {
+            val intent = Intent(this, JammPlayerService::class.java).apply {
                 putExtra("URL", url)
                 putExtra("TITLE", title)
                 putExtra("ARTIST", artist)

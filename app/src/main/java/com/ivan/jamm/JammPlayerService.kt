@@ -10,7 +10,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 
-class MusicPlayerService : Service() {
+class JammPlayerService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var currentTitle = "Jamm Player"
     private var currentArtist = "Неизвестен"
@@ -134,7 +134,7 @@ class MusicPlayerService : Service() {
     }
 
     private fun getPauseIntent(): PendingIntent {
-        val intent = Intent(this, MusicPlayerService::class.java)
+        val intent = Intent(this, JammPlayerService::class.java)
         return PendingIntent.getService(
             this, 1, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
