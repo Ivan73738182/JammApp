@@ -9,8 +9,8 @@
     <application
         android:allowBackup="true"
         android:label="Jamm"
+        android:icon="@drawable/ic_launcher"
         android:theme="@style/Theme.AppCompat.NoActionBar">
-        android:icon="@mipmap/ic_launcher"
         
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
@@ -23,7 +23,6 @@
         <activity android:name=".PlaylistActivity" />
         <activity android:name=".JoinRoomActivity" />
         
-        <!-- Новое имя сервиса -->
         <service android:name=".JammPlayerService" android:foregroundServiceType="mediaPlayback" />
         
     </application>
