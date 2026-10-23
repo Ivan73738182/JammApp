@@ -68,11 +68,6 @@ class PlaylistActivity : AppCompatActivity() {
             if (position < tracksList.size) playMusic(tracksList[position].url)
         }
 
-        lvTracks.setOnItemLongClickListener { _, _, position, _ ->
-            showTrackOptionsDialog(position)
-            true
-        }
-
         btnAdd.setOnClickListener {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
@@ -96,7 +91,7 @@ class PlaylistActivity : AppCompatActivity() {
         }
     }
 
-    private class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
+    private inner class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
         private val inflater = LayoutInflater.from(context)
 
         override fun getCount(): Int = tracks.size
@@ -110,11 +105,10 @@ class PlaylistActivity : AppCompatActivity() {
             val ivCover = view.findViewById<ImageView>(R.id.ivCover)
             val tvTitle = view.findViewById<TextView>(R.id.tvTrackTitle)
             val tvArtist = view.findViewById<TextView>(R.id.tvTrackArtist)
-            val tvPlay = view.findViewById<TextView>(R.id.tvPlayIcon)
+            val btnMenu = view.findViewById<TextView>(R.id.tvPlayIcon)
 
             tvTitle.text = track.title
             tvArtist.text = track.artist
-            tvPlay.text = "⋮"
 
             if (!track.coverUrl.isNullOrEmpty()) {
                 Glide.with(context).load(track.coverUrl).into(ivCover)
@@ -122,6 +116,12 @@ class PlaylistActivity : AppCompatActivity() {
                 ivCover.setImageResource(android.R.drawable.ic_media_play)
                 ivCover.setBackgroundColor(0xFF333333.toInt())
             }
+
+            // Обработка нажатия на три точки
+            btnMenu.setOnClickListener {
+                showTrackOptionsDialog(position)
+            }
+
             return view
         }
     }

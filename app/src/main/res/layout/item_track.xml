@@ -4,15 +4,17 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="8dp"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="4dp"
     android:gravity="center_vertical"
-    android:background="?android:attr/selectableItemBackground">
+    android:background="@drawable/bg_track_card">
 
     <ImageView
         android:id="@+id/ivCover"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:scaleType="centerCrop"
-        android:background="#333333"
+        android:background="@drawable/bg_cover_rounded"
         android:src="@android:drawable/ic_media_play"/>
 
     <LinearLayout
@@ -27,7 +29,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Название песни"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:maxLines="1"
@@ -38,18 +40,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Исполнитель"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textColor="#AAAAAA"
             android:layout_marginTop="2dp"/>
     </LinearLayout>
 
+    <!-- Кнопка с тремя точками -->
     <TextView
         android:id="@+id/tvPlayIcon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="▶"
-        android:textSize="20sp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="⋮"
+        android:textSize="24sp"
         android:textColor="#03DAC5"
-        android:padding="8dp"/>
+        android:gravity="center"
+        android:background="?android:attr/selectableItemBackgroundBorderless"/>
 
 </LinearLayout>
