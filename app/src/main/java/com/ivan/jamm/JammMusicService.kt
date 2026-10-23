@@ -27,6 +27,9 @@ class JammMusicService : Service() {
     private var artistsList = ArrayList<String>()
     private var coversList = ArrayList<String>()
     private var trackPosition = 0
+    
+    // Запоминаем код комнаты для шторки
+    private var currentRoomCode: String = "000000"
 
     private val stopHandler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable {
@@ -82,6 +85,11 @@ class JammMusicService : Service() {
         val artists = intent?.getStringArrayListExtra("ARTISTS")
         val covers = intent?.getStringArrayListExtra("COVERS")
         val pos = intent?.getIntExtra("CURRENT_POSITION", 0) ?: 0
+        val room = intent?.getStringExtra("ROOM_CODE") // <-- Получаем код комнаты
+
+        if (room != null) {
+            currentRoomCode = room
+        }
 
         if (urls != null && titles != null) {
             urlsList = urls
@@ -211,8 +219,12 @@ class JammMusicService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Передаем код комнаты в PlaylistActivity при клике
         val contentIntent = PendingIntent.getActivity(
-            this, 0, Intent(this, PlaylistActivity::class.java),
+            this, 0, Intent(this, PlaylistActivity::class.java).apply {
+                putExtra("ROOM_CODE", currentRoomCode)
+                putExtra("USER_NAME", "Ваня") // или как-то определять
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

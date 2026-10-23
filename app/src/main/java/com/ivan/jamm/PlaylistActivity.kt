@@ -79,7 +79,6 @@ class PlaylistActivity : AppCompatActivity() {
             }
         }
 
-        // Обработка кнопки добавления с диалогом
         btnAdd.setOnClickListener {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
@@ -240,6 +239,7 @@ class PlaylistActivity : AppCompatActivity() {
                 putStringArrayListExtra("ARTISTS", artists)
                 putStringArrayListExtra("COVERS", covers)
                 putExtra("CURRENT_POSITION", position)
+                putExtra("ROOM_CODE", roomCode) // <-- Передаем код комнаты
             }
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
