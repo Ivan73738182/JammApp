@@ -14,7 +14,8 @@ class JammPlayerService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var currentTitle = "Jamm Player"
     private var currentArtist = "Неизвестен"
-    private var isPlaying = false
+    // Переменная переименована, чтобы обойти любые конфликты кэша
+    private var musicIsPlaying = false 
     private lateinit var mediaSession: MediaSessionCompat
 
     override fun onCreate() {
@@ -28,12 +29,12 @@ class JammPlayerService : Service() {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
                     mediaPlayer?.start()
-                    isPlaying = true
+                    musicIsPlaying = true
                     updateNotification()
                 }
                 override fun onPause() {
                     mediaPlayer?.pause()
-                    isPlaying = false
+                    musicIsPlaying = false
                     updateNotification()
                 }
             })
@@ -52,12 +53,12 @@ class JammPlayerService : Service() {
             playNewTrack(url)
         } else {
             if (mediaPlayer != null) {
-                if (isPlaying) {
+                if (musicIsPlaying) {
                     mediaPlayer?.pause()
-                    isPlaying = false
+                    musicIsPlaying = false
                 } else {
                     mediaPlayer?.start()
-                    isPlaying = true
+                    musicIsPlaying = true
                 }
                 updateNotification()
             }
@@ -73,23 +74,23 @@ class JammPlayerService : Service() {
                 setDataSource(url)
                 setOnPreparedListener {
                     start()
-                    isPlaying = true
+                    musicIsPlaying = true
                     updateNotification()
                     updateMediaSession()
                 }
                 setOnCompletionListener {
-                    isPlaying = false
+                    musicIsPlaying = false
                     updateNotification()
                 }
                 setOnErrorListener { _, _, _ ->
-                    isPlaying = false
+                    musicIsPlaying = false
                     updateNotification()
                     true
                 }
                 prepareAsync()
             }
         } catch (e: Exception) {
-            isPlaying = false
+            musicIsPlaying = false
             updateNotification()
         }
     }
@@ -105,7 +106,7 @@ class JammPlayerService : Service() {
             PlaybackStateCompat.Builder()
                 .setActions(PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE)
                 .setState(
-                    if (isPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
+                    if (musicIsPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
                     PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
                     1.0f
                 )
@@ -115,7 +116,7 @@ class JammPlayerService : Service() {
 
     private fun updateNotification() {
         updateMediaSession()
-        val playPauseAction = if (isPlaying) "⏸ Пауза" else "▶ Играть"
+        val playPauseAction = if (musicIsPlaying) "⏸ Пауза" else "▶ Играть"
         val contentIntent = PendingIntent.getActivity(
             this, 0, Intent(this, PlaylistActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -162,4 +163,3 @@ class JammPlayerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 }
-// force update
