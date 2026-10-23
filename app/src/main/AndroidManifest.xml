@@ -22,7 +22,6 @@
         <activity android:name=".RoomCodeActivity" />
         <activity android:name=".PlaylistActivity" />
         <activity android:name=".JoinRoomActivity" />
-        <activity android:name=".ChatActivity" />
         
         <service android:name=".JammMusicService" android:foregroundServiceType="mediaPlayback" />
         

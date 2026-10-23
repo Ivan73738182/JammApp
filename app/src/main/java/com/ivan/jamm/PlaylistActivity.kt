@@ -59,14 +59,6 @@ class PlaylistActivity : AppCompatActivity() {
         val btnAdd = findViewById<Button>(R.id.btnAddTrack)
         val etUrl = findViewById<EditText>(R.id.etTrackUrl)
         btnPlayPause = findViewById(R.id.btnPlayPause)
-        
-        val btnChat = findViewById<Button>(R.id.btnChat)
-        btnChat.setOnClickListener {
-            val intent = Intent(this, ChatActivity::class.java)
-            intent.putExtra("ROOM_CODE", roomCode)
-            intent.putExtra("SENDER_NAME", userName)
-            startActivity(intent)
-        }
 
         adapter = TrackAdapter(this, tracksList)
         lvTracks.adapter = adapter
@@ -239,7 +231,7 @@ class PlaylistActivity : AppCompatActivity() {
                 putStringArrayListExtra("ARTISTS", artists)
                 putStringArrayListExtra("COVERS", covers)
                 putExtra("CURRENT_POSITION", position)
-                putExtra("ROOM_CODE", roomCode) // <-- Передаем код комнаты
+                putExtra("ROOM_CODE", roomCode)
             }
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
