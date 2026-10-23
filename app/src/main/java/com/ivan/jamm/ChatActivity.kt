@@ -1,6 +1,7 @@
 package com.ivan.jamm
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -39,6 +40,14 @@ class ChatActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+
+        // Отключаем рисование под системной панелью навигации (полоска снизу)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        }
 
         roomCode = intent.getStringExtra("ROOM_CODE") ?: "000000"
         senderName = intent.getStringExtra("SENDER_NAME") ?: "Гость"
@@ -122,7 +131,6 @@ class ChatActivity : AppCompatActivity() {
                             val json = JSONObject(responseBody)
                             val msgs = json.getJSONArray("messages")
                             
-                            // Проверяем, изменилось ли количество, чтобы не дергать список зря
                             if (messagesList.size != msgs.length()) {
                                 messagesList.clear()
                                 for (i in 0 until msgs.length()) {
