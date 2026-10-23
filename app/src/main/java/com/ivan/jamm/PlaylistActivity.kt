@@ -3,12 +3,9 @@ package com.ivan.jamm
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ListView
-import android.widget.TextView
-import android.widget.Toast
+import android.text.InputType
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -23,6 +20,7 @@ class PlaylistActivity : AppCompatActivity() {
     
     private var mediaPlayer: MediaPlayer? = null
     private var isMusicPlaying = false
+    private val trackIds = mutableListOf<String>()
     private val trackUrls = mutableListOf<String>()
     private val tracksList = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
@@ -36,7 +34,6 @@ class PlaylistActivity : AppCompatActivity() {
         val tvCode = findViewById<TextView>(R.id.tvPlaylistCode)
         tvCode.text = "Код комнаты: $roomCode (удерживайте для выхода)"
 
-        // Долгое нажатие на код комнаты = выход
         tvCode.setOnLongClickListener {
             getSharedPreferences("JammPrefs", MODE_PRIVATE).edit().remove("SAVED_ROOM_CODE").apply()
             val intent = Intent(this, MainActivity::class.java)
@@ -56,10 +53,15 @@ class PlaylistActivity : AppCompatActivity() {
 
         loadTracks()
 
+        // Обычное нажатие — включить трек
         lvTracks.setOnItemClickListener { _, _, position, _ ->
-            if (position < trackUrls.size) {
-                playMusic(trackUrls[position])
-            }
+            if (position < trackUrls.size) playMusic(trackUrls[position])
+        }
+
+        // Долгое нажатие — меню редактирования
+        lvTracks.setOnItemLongClickListener { _, _, position, _ ->
+            showTrackOptionsDialog(position)
+            true
         }
 
         btnAdd.setOnClickListener {
@@ -83,6 +85,83 @@ class PlaylistActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showTrackOptionsDialog(position: Int) {
+        val options = arrayOf("Изменить название", "Удалить трек")
+        AlertDialog.Builder(this)
+            .setTitle(tracksList[position])
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showRenameDialog(position)
+                    1 -> showDeleteDialog(position)
+                }
+            }
+            .show()
+    }
+
+    private fun showRenameDialog(position: Int) {
+        val trackId = trackIds[position]
+        val currentTitle = tracksList[position].substringAfter("▶ ").substringBefore(" - ")
+        
+        val input = EditText(this)
+        input.setText(currentTitle)
+        input.inputType = InputType.TYPE_CLASS_TEXT
+
+        AlertDialog.Builder(this)
+            .setTitle("Новое название")
+            .setView(input)
+            .setPositiveButton("Сохранить") { _, _ ->
+                val newTitle = input.text.toString().trim()
+                if (newTitle.isNotEmpty()) renameTrack(trackId, newTitle)
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun showDeleteDialog(position: Int) {
+        val trackId = trackIds[position]
+        AlertDialog.Builder(this)
+            .setTitle("Удалить трек?")
+            .setMessage("Трек будет удален из плейлиста.")
+            .setPositiveButton("Удалить") { _, _ -> deleteTrack(trackId) }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun renameTrack(trackId: String, newTitle: String) {
+        val jsonBody = JSONObject().apply { put("title", newTitle) }
+        val request = Request.Builder()
+            .url("$serverUrl/api/track/$trackId")
+            .put(jsonBody.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                runOnUiThread {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@PlaylistActivity, "Название обновлено!", Toast.LENGTH_SHORT).show()
+                        loadTracks()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun deleteTrack(trackId: String) {
+        val request = Request.Builder().url("$serverUrl/api/track/$trackId").delete().build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                runOnUiThread {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@PlaylistActivity, "Трек удален", Toast.LENGTH_SHORT).show()
+                        loadTracks()
+                    }
+                }
+            }
+        })
     }
 
     private fun playMusic(url: String) {
@@ -124,8 +203,10 @@ class PlaylistActivity : AppCompatActivity() {
                             val tracks = json.getJSONArray("tracks")
                             tracksList.clear()
                             trackUrls.clear()
+                            trackIds.clear()
                             for (i in 0 until tracks.length()) {
                                 val track = tracks.getJSONObject(i)
+                                trackIds.add(track.getString("id"))
                                 tracksList.add("▶ ${track.getString("title")} - ${track.getString("artist")}")
                                 trackUrls.add(track.optString("url", ""))
                             }
