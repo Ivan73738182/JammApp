@@ -20,6 +20,7 @@ import java.io.IOException
 
 class PlaylistActivity : AppCompatActivity() {
     private var roomCode: String = ""
+    private var userName: String = "Гость"
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
     
@@ -40,6 +41,8 @@ class PlaylistActivity : AppCompatActivity() {
         setContentView(R.layout.activity_playlist)
 
         roomCode = intent.getStringExtra("ROOM_CODE") ?: "000000"
+        userName = intent.getStringExtra("USER_NAME") ?: "Гость"
+        
         val tvCode = findViewById<TextView>(R.id.tvPlaylistCode)
         tvCode.text = "Код комнаты: $roomCode (удерживайте для выхода)"
 
@@ -57,12 +60,11 @@ class PlaylistActivity : AppCompatActivity() {
         val etUrl = findViewById<EditText>(R.id.etTrackUrl)
         btnPlayPause = findViewById(R.id.btnPlayPause)
         
-        // Обработка кнопки чата
         val btnChat = findViewById<Button>(R.id.btnChat)
         btnChat.setOnClickListener {
             val intent = Intent(this, ChatActivity::class.java)
             intent.putExtra("ROOM_CODE", roomCode)
-            intent.putExtra("SENDER_NAME", "Ваня") // Пока жестко задано, можно сделать выбор имени
+            intent.putExtra("SENDER_NAME", userName)
             startActivity(intent)
         }
 
@@ -81,7 +83,7 @@ class PlaylistActivity : AppCompatActivity() {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
             val title = url.substringAfterLast("/").take(20)
-            addTrackToServer(title, "Неизвестен", "Пользователь", url, "")
+            addTrackToServer(title, "Неизвестен", userName, url, "")
             etUrl.text.clear()
         }
 

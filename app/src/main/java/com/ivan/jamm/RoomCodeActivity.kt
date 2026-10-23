@@ -22,10 +22,10 @@ class RoomCodeActivity : AppCompatActivity() {
         btnGo.setOnClickListener {
             val intent = Intent(this, PlaylistActivity::class.java)
             intent.putExtra("ROOM_CODE", roomCode)
+            intent.putExtra("USER_NAME", "Ваня") // <--- Создатель — Ваня
             startActivity(intent)
         }
 
-        // Логика кнопки "Поделиться"
         btnShare.setOnClickListener {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"

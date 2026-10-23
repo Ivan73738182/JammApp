@@ -41,12 +41,12 @@ class JoinRoomActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 runOnUiThread {
                     if (response.isSuccessful) {
-                        // Сохраняем код!
                         getSharedPreferences("JammPrefs", MODE_PRIVATE)
                             .edit().putString("SAVED_ROOM_CODE", code).apply()
 
                         val intent = Intent(this@JoinRoomActivity, PlaylistActivity::class.java)
                         intent.putExtra("ROOM_CODE", code)
+                        intent.putExtra("USER_NAME", "Ксюша") // <--- Гость — Ксюша
                         startActivity(intent)
                         finish()
                     } else if (response.code == 404) {
