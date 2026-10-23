@@ -51,7 +51,6 @@ class MusicService : Service() {
             currentArtist = artist ?: "Неизвестен"
             playNewTrack(url)
         } else {
-            // Если URL нет, но сервис уже запущен — обрабатываем паузу/игру
             if (mediaPlayer != null) {
                 if (isPlaying) {
                     mediaPlayer?.pause()
@@ -64,7 +63,7 @@ class MusicService : Service() {
             }
         }
 
-        return START_STICKY // Сервис будет перезапущен, если система его убьет
+        return START_STICKY
     }
 
     private fun playNewTrack(url: String) {
