@@ -114,10 +114,8 @@ class PlaylistActivity : AppCompatActivity() {
                 Glide.with(context).load(track.coverUrl).into(ivCover)
             } else {
                 ivCover.setImageResource(android.R.drawable.ic_media_play)
-                ivCover.setBackgroundColor(0xFF333333.toInt())
             }
 
-            // Обработка нажатия на три точки
             btnMenu.setOnClickListener {
                 showTrackOptionsDialog(position)
             }
