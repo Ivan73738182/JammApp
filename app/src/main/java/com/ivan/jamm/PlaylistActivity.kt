@@ -4,8 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
@@ -28,17 +26,6 @@ class PlaylistActivity : AppCompatActivity() {
     private val tracksList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
     private lateinit var btnPlayPause: Button
-    private lateinit var progressBar: ProgressBar
-
-    // Для обновления полосы прогресса
-    private val progressHandler = Handler(Looper.getMainLooper())
-    private val progressRunnable = object : Runnable {
-        override fun run() {
-            // Здесь мы будем обновлять прогресс (пока заглушка, так как сервис в другом процессе)
-            // В будущем можно связать с сервисом через BroadcastReceiver
-            progressHandler.postDelayed(this, 1000)
-        }
-    }
 
     data class Track(
         val id: String,
@@ -69,7 +56,15 @@ class PlaylistActivity : AppCompatActivity() {
         val btnAdd = findViewById<Button>(R.id.btnAddTrack)
         val etUrl = findViewById<EditText>(R.id.etTrackUrl)
         btnPlayPause = findViewById(R.id.btnPlayPause)
-        progressBar = findViewById(R.id.progressBar)
+        
+        // Обработка кнопки чата
+        val btnChat = findViewById<Button>(R.id.btnChat)
+        btnChat.setOnClickListener {
+            val intent = Intent(this, ChatActivity::class.java)
+            intent.putExtra("ROOM_CODE", roomCode)
+            intent.putExtra("SENDER_NAME", "Ваня") // Пока жестко задано, можно сделать выбор имени
+            startActivity(intent)
+        }
 
         adapter = TrackAdapter(this, tracksList)
         lvTracks.adapter = adapter
@@ -94,16 +89,6 @@ class PlaylistActivity : AppCompatActivity() {
             val intent = Intent(this, JammMusicService::class.java)
             startService(intent)
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        progressHandler.post(progressRunnable)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        progressHandler.removeCallbacks(progressRunnable)
     }
 
     private inner class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
