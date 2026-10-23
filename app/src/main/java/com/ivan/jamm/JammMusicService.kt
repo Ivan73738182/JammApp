@@ -12,6 +12,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat.MediaStyle
 import com.bumptech.glide.Glide
 
 class JammMusicService : Service() {
@@ -30,16 +31,6 @@ class JammMusicService : Service() {
         if (!musicIsPlaying) stopSelf()
     }
 
-    private val progressHandler = Handler(Looper.getMainLooper())
-    private val progressRunnable = object : Runnable {
-        override fun run() {
-            if (musicIsPlaying && mediaPlayer != null) {
-                updateNotification()
-            }
-            progressHandler.postDelayed(this, 1000)
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -53,7 +44,6 @@ class JammMusicService : Service() {
                     mediaPlayer?.start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
-                    progressHandler.post(progressRunnable)
                     updateNotification()
                 }
                 override fun onPause() {
@@ -108,7 +98,6 @@ class JammMusicService : Service() {
                     mediaPlayer?.start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
-                    progressHandler.post(progressRunnable)
                 }
                 updateNotification()
             }
@@ -128,7 +117,6 @@ class JammMusicService : Service() {
                     start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
-                    progressHandler.post(progressRunnable)
                     updateNotification()
                     updateMediaSession()
                 }
@@ -222,14 +210,6 @@ class JammMusicService : Service() {
 
         val playPauseIcon = if (musicIsPlaying) "⏸" else "▶"
 
-        var progress = 0
-        var max = 100
-        if (mediaPlayer != null) {
-            progress = mediaPlayer!!.currentPosition
-            max = mediaPlayer!!.duration
-        }
-
-        // Убрали MediaStyle, добавили setProgress
         val notification = NotificationCompat.Builder(this, "jamm_channel")
             .setContentTitle(title)
             .setContentText(artist)
@@ -239,7 +219,11 @@ class JammMusicService : Service() {
             .addAction(0, "⏮", prevIntent)
             .addAction(0, playPauseIcon, playPauseIntent)
             .addAction(0, "⏭", nextIntent)
-            .setProgress(max, progress, false)
+            .setStyle(
+                MediaStyle()
+                    .setMediaSession(mediaSession.sessionToken)
+                    .setShowActionsInCompactView(0, 1, 2)
+            )
             .build()
 
         startForeground(1, notification)
@@ -260,7 +244,6 @@ class JammMusicService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopHandler.removeCallbacks(stopRunnable)
-        progressHandler.removeCallbacks(progressRunnable)
         mediaPlayer?.release()
         mediaPlayer = null
         mediaSession.release()
