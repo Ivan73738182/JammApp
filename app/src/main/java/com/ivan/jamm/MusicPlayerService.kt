@@ -10,7 +10,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 
-class MusicService : Service() {
+class MusicPlayerService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var currentTitle = "Jamm Player"
     private var currentArtist = "Неизвестен"

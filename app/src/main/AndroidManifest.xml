@@ -22,7 +22,8 @@
         <activity android:name=".PlaylistActivity" />
         <activity android:name=".JoinRoomActivity" />
         
-        <service android:name=".MusicService" android:foregroundServiceType="mediaPlayback" />
+        <!-- Новое имя сервиса -->
+        <service android:name=".MusicPlayerService" android:foregroundServiceType="mediaPlayback" />
         
     </application>
 

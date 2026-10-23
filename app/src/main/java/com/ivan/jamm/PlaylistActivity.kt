@@ -2,7 +2,6 @@ package com.ivan.jamm
 
 import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -24,7 +23,6 @@ class PlaylistActivity : AppCompatActivity() {
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
     
-    private var mediaPlayer: MediaPlayer? = null
     private var isMusicPlaying = false
     private val tracksList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
@@ -66,7 +64,9 @@ class PlaylistActivity : AppCompatActivity() {
         loadTracks()
 
         lvTracks.setOnItemClickListener { _, _, position, _ ->
-            if (position < tracksList.size) playMusic(tracksList[position].url, tracksList[position].title, tracksList[position].artist)
+            if (position < tracksList.size) {
+                playMusic(tracksList[position].url, tracksList[position].title, tracksList[position].artist)
+            }
         }
 
         btnAdd.setOnClickListener {
@@ -78,8 +78,7 @@ class PlaylistActivity : AppCompatActivity() {
         }
 
         btnPlayPause.setOnClickListener {
-            // Логика паузы (теперь через сервис)
-            val intent = Intent(this, MusicService::class.java)
+            val intent = Intent(this, MusicPlayerService::class.java)
             startService(intent)
         }
     }
@@ -197,7 +196,7 @@ class PlaylistActivity : AppCompatActivity() {
 
     private fun playMusic(url: String, title: String, artist: String) {
         try {
-            val intent = Intent(this, MusicService::class.java).apply {
+            val intent = Intent(this, MusicPlayerService::class.java).apply {
                 putExtra("URL", url)
                 putExtra("TITLE", title)
                 putExtra("ARTIST", artist)
@@ -268,10 +267,5 @@ class PlaylistActivity : AppCompatActivity() {
                 }
             }
         })
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        // Не убиваем сервис, пусть играет в фоне
     }
 }
