@@ -2,6 +2,7 @@ package com.ivan.jamm
 
 import android.app.*
 import android.content.Intent
+import android.graphics.Bitmap
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
@@ -9,13 +10,14 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import com.bumptech.glide.Glide
 
 class JammPlayerService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var currentTitle = "Jamm Player"
     private var currentArtist = "Неизвестен"
-    // Переменная переименована, чтобы обойти любые конфликты кэша
-    private var musicIsPlaying = false 
+    private var currentCoverUrl: String? = null
+    private var musicIsPlaying = false
     private lateinit var mediaSession: MediaSessionCompat
 
     override fun onCreate() {
@@ -46,10 +48,12 @@ class JammPlayerService : Service() {
         val url = intent?.getStringExtra("URL")
         val title = intent?.getStringExtra("TITLE")
         val artist = intent?.getStringExtra("ARTIST")
+        val coverUrl = intent?.getStringExtra("COVER_URL")
 
         if (url != null && title != null) {
             currentTitle = title
             currentArtist = artist ?: "Неизвестен"
+            currentCoverUrl = coverUrl
             playNewTrack(url)
         } else {
             if (mediaPlayer != null) {
@@ -96,12 +100,24 @@ class JammPlayerService : Service() {
     }
 
     private fun updateMediaSession() {
-        mediaSession.setMetadata(
-            MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
-                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
-                .build()
-        )
+        val metadataBuilder = MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
+
+        if (!currentCoverUrl.isNullOrEmpty()) {
+            try {
+                val bitmap: Bitmap = Glide.with(this)
+                    .asBitmap()
+                    .load(currentCoverUrl)
+                    .submit(512, 512)
+                    .get()
+                metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+            } catch (e: Exception) {
+                // Игнорируем ошибку загрузки картинки
+            }
+        }
+
+        mediaSession.setMetadata(metadataBuilder.build())
         mediaSession.setPlaybackState(
             PlaybackStateCompat.Builder()
                 .setActions(PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE)

@@ -64,7 +64,12 @@ class PlaylistActivity : AppCompatActivity() {
 
         lvTracks.setOnItemClickListener { _, _, position, _ ->
             if (position < tracksList.size) {
-                playMusic(tracksList[position].url, tracksList[position].title, tracksList[position].artist)
+                playMusic(
+                    tracksList[position].url,
+                    tracksList[position].title,
+                    tracksList[position].artist,
+                    tracksList[position].coverUrl
+                )
             }
         }
 
@@ -193,12 +198,13 @@ class PlaylistActivity : AppCompatActivity() {
         })
     }
 
-    private fun playMusic(url: String, title: String, artist: String) {
+    private fun playMusic(url: String, title: String, artist: String, coverUrl: String?) {
         try {
             val intent = Intent(this, JammPlayerService::class.java).apply {
                 putExtra("URL", url)
                 putExtra("TITLE", title)
                 putExtra("ARTIST", artist)
+                putExtra("COVER_URL", coverUrl)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
