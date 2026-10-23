@@ -5,7 +5,7 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="32dp"
-    android:background="#121212">
+    android:background="@drawable/bg_gradient">
 
     <TextView
         android:layout_width="wrap_content"
@@ -41,6 +41,17 @@
         android:text="Перейти к плейлисту"
         android:textSize="18sp"
         android:backgroundTint="#6200EE"
-        android:textColor="#FFFFFF"/>
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Новая кнопка "Поделиться" -->
+    <Button
+        android:id="@+id/btnShareCode"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="Поделиться кодом"
+        android:textSize="18sp"
+        android:backgroundTint="#03DAC5"
+        android:textColor="#121212"/>
 
 </LinearLayout>
