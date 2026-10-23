@@ -113,7 +113,9 @@ class PlaylistActivity : AppCompatActivity() {
             if (!track.coverUrl.isNullOrEmpty()) {
                 Glide.with(context).load(track.coverUrl).into(ivCover)
             } else {
-                ivCover.setImageResource(android.R.drawable.ic_media_play)
+                // Убираем системную иконку, оставляем просто пустой фон
+                ivCover.setImageDrawable(null)
+                ivCover.setBackgroundColor(0xFF333333.toInt())
             }
 
             btnMenu.setOnClickListener {
