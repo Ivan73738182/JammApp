@@ -12,7 +12,6 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
-import androidx.media.app.NotificationCompat.MediaStyle
 import com.bumptech.glide.Glide
 
 class JammMusicService : Service() {
@@ -31,14 +30,13 @@ class JammMusicService : Service() {
         if (!musicIsPlaying) stopSelf()
     }
 
-    // Таймер для обновления полосы прогресса
     private val progressHandler = Handler(Looper.getMainLooper())
     private val progressRunnable = object : Runnable {
         override fun run() {
             if (musicIsPlaying && mediaPlayer != null) {
-                updateNotification() // Обновляем уведомление с новым прогрессом
+                updateNotification()
             }
-            progressHandler.postDelayed(this, 1000) // Каждую секунду
+            progressHandler.postDelayed(this, 1000)
         }
     }
 
@@ -224,7 +222,6 @@ class JammMusicService : Service() {
 
         val playPauseIcon = if (musicIsPlaying) "⏸" else "▶"
 
-        // Получаем прогресс
         var progress = 0
         var max = 100
         if (mediaPlayer != null) {
@@ -232,6 +229,7 @@ class JammMusicService : Service() {
             max = mediaPlayer!!.duration
         }
 
+        // Убрали MediaStyle, добавили setProgress
         val notification = NotificationCompat.Builder(this, "jamm_channel")
             .setContentTitle(title)
             .setContentText(artist)
@@ -241,12 +239,7 @@ class JammMusicService : Service() {
             .addAction(0, "⏮", prevIntent)
             .addAction(0, playPauseIcon, playPauseIntent)
             .addAction(0, "⏭", nextIntent)
-            .setProgress(max, progress, false) // <--- ВОТ ОНА, ПОЛОСА ПРОГРЕССА
-            .setStyle(
-                MediaStyle()
-                    .setMediaSession(mediaSession.sessionToken)
-                    .setShowActionsInCompactView(0, 1, 2)
-            )
+            .setProgress(max, progress, false)
             .build()
 
         startForeground(1, notification)
