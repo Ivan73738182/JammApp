@@ -6,7 +6,6 @@
     android:padding="16dp"
     android:background="@drawable/bg_gradient">
 
-    <!-- Верхняя панель с заголовком и кнопкой чата -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -56,7 +55,7 @@
         android:layout_height="50dp"
         android:background="@drawable/btn_neon_purple"
         android:paddingHorizontal="16dp"
-        android:hint="Вставьте ссылку на mp3"
+        android:hint="Вставьте ссылку на песню"
         android:textColorHint="#AAAAAA"
         android:textColor="#FFFFFF"
         android:inputType="textUri"

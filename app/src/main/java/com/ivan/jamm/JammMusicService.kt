@@ -3,7 +3,9 @@ package com.ivan.jamm
 import android.app.*
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -112,7 +114,13 @@ class JammMusicService : Service() {
         try {
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
-                setDataSource(urlsList[position])
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+                setDataSource(this@JammMusicService, Uri.parse(urlsList[position]))
                 setOnPreparedListener {
                     start()
                     musicIsPlaying = true
