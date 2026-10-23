@@ -5,7 +5,9 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaPlayer
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -20,6 +22,14 @@ class JammPlayerService : Service() {
     private var musicIsPlaying = false
     private lateinit var mediaSession: MediaSessionCompat
 
+    // Таймер для остановки сервиса
+    private val stopHandler = Handler(Looper.getMainLooper())
+    private val stopRunnable = Runnable {
+        if (!musicIsPlaying) {
+            stopSelf() // Останавливаем сервис, если музыка не играет
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -32,16 +42,23 @@ class JammPlayerService : Service() {
                 override fun onPlay() {
                     mediaPlayer?.start()
                     musicIsPlaying = true
+                    stopHandler.removeCallbacks(stopRunnable) // Отменяем таймер
                     updateNotification()
                 }
                 override fun onPause() {
                     mediaPlayer?.pause()
                     musicIsPlaying = false
+                    startStopTimer() // Запускаем таймер на 5 минут
                     updateNotification()
                 }
             })
             isActive = true
         }
+    }
+
+    private fun startStopTimer() {
+        stopHandler.removeCallbacks(stopRunnable)
+        stopHandler.postDelayed(stopRunnable, 5 * 60 * 1000L) // 5 минут
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -60,9 +77,11 @@ class JammPlayerService : Service() {
                 if (musicIsPlaying) {
                     mediaPlayer?.pause()
                     musicIsPlaying = false
+                    startStopTimer() // Если поставили на паузу из шторки — запускаем таймер
                 } else {
                     mediaPlayer?.start()
                     musicIsPlaying = true
+                    stopHandler.removeCallbacks(stopRunnable) // Если включили — отменяем таймер
                 }
                 updateNotification()
             }
@@ -79,15 +98,18 @@ class JammPlayerService : Service() {
                 setOnPreparedListener {
                     start()
                     musicIsPlaying = true
+                    stopHandler.removeCallbacks(stopRunnable)
                     updateNotification()
                     updateMediaSession()
                 }
                 setOnCompletionListener {
                     musicIsPlaying = false
+                    startStopTimer() // Когда трек закончился — запускаем таймер
                     updateNotification()
                 }
                 setOnErrorListener { _, _, _ ->
                     musicIsPlaying = false
+                    startStopTimer()
                     updateNotification()
                     true
                 }
@@ -95,6 +117,7 @@ class JammPlayerService : Service() {
             }
         } catch (e: Exception) {
             musicIsPlaying = false
+            startStopTimer()
             updateNotification()
         }
     }
@@ -172,6 +195,7 @@ class JammPlayerService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopHandler.removeCallbacks(stopRunnable)
         mediaPlayer?.release()
         mediaPlayer = null
         mediaSession.release()
