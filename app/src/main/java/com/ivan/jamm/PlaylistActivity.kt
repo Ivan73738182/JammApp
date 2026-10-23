@@ -17,6 +17,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import java.net.URLDecoder
 
 class PlaylistActivity : AppCompatActivity() {
     private var roomCode: String = ""
@@ -75,17 +76,20 @@ class PlaylistActivity : AppCompatActivity() {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
 
+            // Пытаемся вытащить название из ссылки
+            val parsedTitle = extractTitleFromUrl(url)
+
             val input = EditText(this)
             input.hint = "Название песни (необязательно)"
-            input.setText(url.substringAfterLast("/").take(20))
+            input.setText(parsedTitle) // Подставляем распарсенное название
             
             AlertDialog.Builder(this)
                 .setTitle("Добавить трек")
-                .setMessage("Введите название песни:")
+                .setMessage("Проверьте название песни:")
                 .setView(input)
                 .setPositiveButton("Добавить") { _, _ ->
                     val title = input.text.toString().trim()
-                    val finalTitle = if (title.isEmpty()) url.substringAfterLast("/").take(20) else title
+                    val finalTitle = if (title.isEmpty()) "Без названия" else title
                     
                     addTrackToServer(finalTitle, "Неизвестен", userName, url, "")
                     etUrl.text.clear()
@@ -97,6 +101,42 @@ class PlaylistActivity : AppCompatActivity() {
         btnPlayPause.setOnClickListener {
             val intent = Intent(this, JammMusicService::class.java)
             startService(intent)
+        }
+    }
+
+    // Функция для извлечения названия из ссылки
+    private fun extractTitleFromUrl(url: String): String {
+        try {
+            // 1. Пытаемся найти параметр title= или name=
+            val uri = java.net.URI(url)
+            val query = uri.query
+            if (query != null) {
+                for (param in query.split("&")) {
+                    val parts = param.split("=")
+                    if (parts.size == 2) {
+                        val key = parts[0].lowercase()
+                        if (key == "title" || key == "name" || key == "filename") {
+                            return URLDecoder.decode(parts[1], "UTF-8")
+                        }
+                    }
+                }
+            }
+            
+            // 2. Если параметров нет, берем последнюю часть пути
+            var lastPart = url.substringAfterLast("/")
+            // Убираем возможные параметры в конце (?siren=1)
+            lastPart = lastPart.substringBefore("?")
+            // Убираем расширение файла (.mp3, .m4a и т.д.)
+            lastPart = lastPart.substringBeforeLast(".")
+            
+            // Если ничего не осталось, возвращаем дефолт
+            if (lastPart.isEmpty() || lastPart == "index") {
+                return "Неизвестный трек"
+            }
+            
+            return URLDecoder.decode(lastPart, "UTF-8")
+        } catch (e: Exception) {
+            return "Неизвестный трек"
         }
     }
 
