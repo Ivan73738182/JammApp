@@ -24,11 +24,22 @@ class JammMusicService : Service() {
     private var titlesList = ArrayList<String>()
     private var artistsList = ArrayList<String>()
     private var coversList = ArrayList<String>()
-    private var trackPosition = 0 // Изменили имя переменной
+    private var trackPosition = 0
 
     private val stopHandler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable {
         if (!musicIsPlaying) stopSelf()
+    }
+
+    // Таймер для обновления полосы прогресса
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private val progressRunnable = object : Runnable {
+        override fun run() {
+            if (musicIsPlaying && mediaPlayer != null) {
+                updateNotification() // Обновляем уведомление с новым прогрессом
+            }
+            progressHandler.postDelayed(this, 1000) // Каждую секунду
+        }
     }
 
     override fun onCreate() {
@@ -44,6 +55,7 @@ class JammMusicService : Service() {
                     mediaPlayer?.start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
+                    progressHandler.post(progressRunnable)
                     updateNotification()
                 }
                 override fun onPause() {
@@ -98,6 +110,7 @@ class JammMusicService : Service() {
                     mediaPlayer?.start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
+                    progressHandler.post(progressRunnable)
                 }
                 updateNotification()
             }
@@ -117,6 +130,7 @@ class JammMusicService : Service() {
                     start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
+                    progressHandler.post(progressRunnable)
                     updateNotification()
                     updateMediaSession()
                 }
@@ -175,7 +189,7 @@ class JammMusicService : Service() {
                 )
                 .setState(
                     if (musicIsPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    if (mediaPlayer != null) mediaPlayer!!.currentPosition.toLong() else PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
                     1.0f
                 )
                 .build()
@@ -210,6 +224,14 @@ class JammMusicService : Service() {
 
         val playPauseIcon = if (musicIsPlaying) "⏸" else "▶"
 
+        // Получаем прогресс
+        var progress = 0
+        var max = 100
+        if (mediaPlayer != null) {
+            progress = mediaPlayer!!.currentPosition
+            max = mediaPlayer!!.duration
+        }
+
         val notification = NotificationCompat.Builder(this, "jamm_channel")
             .setContentTitle(title)
             .setContentText(artist)
@@ -219,6 +241,7 @@ class JammMusicService : Service() {
             .addAction(0, "⏮", prevIntent)
             .addAction(0, playPauseIcon, playPauseIntent)
             .addAction(0, "⏭", nextIntent)
+            .setProgress(max, progress, false) // <--- ВОТ ОНА, ПОЛОСА ПРОГРЕССА
             .setStyle(
                 MediaStyle()
                     .setMediaSession(mediaSession.sessionToken)
@@ -244,6 +267,7 @@ class JammMusicService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopHandler.removeCallbacks(stopRunnable)
+        progressHandler.removeCallbacks(progressRunnable)
         mediaPlayer?.release()
         mediaPlayer = null
         mediaSession.release()
