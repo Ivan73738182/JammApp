@@ -79,12 +79,28 @@ class PlaylistActivity : AppCompatActivity() {
             }
         }
 
+        // Обработка кнопки добавления с диалогом
         btnAdd.setOnClickListener {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
-            val title = url.substringAfterLast("/").take(20)
-            addTrackToServer(title, "Неизвестен", userName, url, "")
-            etUrl.text.clear()
+
+            val input = EditText(this)
+            input.hint = "Название песни (необязательно)"
+            input.setText(url.substringAfterLast("/").take(20))
+            
+            AlertDialog.Builder(this)
+                .setTitle("Добавить трек")
+                .setMessage("Введите название песни:")
+                .setView(input)
+                .setPositiveButton("Добавить") { _, _ ->
+                    val title = input.text.toString().trim()
+                    val finalTitle = if (title.isEmpty()) url.substringAfterLast("/").take(20) else title
+                    
+                    addTrackToServer(finalTitle, "Неизвестен", userName, url, "")
+                    etUrl.text.clear()
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
         }
 
         btnPlayPause.setOnClickListener {
