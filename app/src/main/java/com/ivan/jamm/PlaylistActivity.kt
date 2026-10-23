@@ -45,8 +45,10 @@ class PlaylistActivity : AppCompatActivity() {
         userName = intent.getStringExtra("USER_NAME") ?: "Гость"
         
         val tvCode = findViewById<TextView>(R.id.tvPlaylistCode)
-        tvCode.text = "Код комнаты: $roomCode (удерживайте для выхода)"
+        // Убрали надпись про удержание
+        tvCode.text = "Код комнаты: $roomCode"
 
+        // Логика выхода по долгому нажатию осталась
         tvCode.setOnLongClickListener {
             getSharedPreferences("JammPrefs", MODE_PRIVATE).edit().remove("SAVED_ROOM_CODE").apply()
             val intent = Intent(this, MainActivity::class.java)
@@ -153,14 +155,12 @@ class PlaylistActivity : AppCompatActivity() {
             tvArtist.text = track.artist
 
             if (!track.coverUrl.isNullOrEmpty()) {
-                // Если есть обложка из интернета — грузим её
                 Glide.with(context).load(track.coverUrl).into(ivCover)
                 ivCover.scaleType = ImageView.ScaleType.CENTER_CROP
             } else {
-                // Если обложки нет — ставим нашу иконку, но так, чтобы она была внутри квадрата
                 ivCover.setImageResource(R.drawable.app_icon)
-                ivCover.scaleType = ImageView.ScaleType.CENTER_INSIDE // Вписываем картинку целиком, не растягивая
-                ivCover.setBackgroundColor(0xFF1A1A1A.toInt()) // Темный фон под иконкой
+                ivCover.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                ivCover.setBackgroundColor(0xFF1A1A1A.toInt())
             }
 
             btnMenu.setOnClickListener {
