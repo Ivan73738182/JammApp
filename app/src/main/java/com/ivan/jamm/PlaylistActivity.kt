@@ -1,12 +1,17 @@
 package com.ivan.jamm
 
+import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.text.InputType
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -20,11 +25,17 @@ class PlaylistActivity : AppCompatActivity() {
     
     private var mediaPlayer: MediaPlayer? = null
     private var isMusicPlaying = false
-    private val trackIds = mutableListOf<String>()
-    private val trackUrls = mutableListOf<String>()
-    private val tracksList = mutableListOf<String>()
-    private lateinit var adapter: ArrayAdapter<String>
+    private val tracksList = mutableListOf<Track>()
+    private lateinit var adapter: TrackAdapter
     private lateinit var btnPlayPause: Button
+
+    data class Track(
+        val id: String,
+        val title: String,
+        val artist: String,
+        val url: String,
+        val coverUrl: String?
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,17 +59,15 @@ class PlaylistActivity : AppCompatActivity() {
         val etUrl = findViewById<EditText>(R.id.etTrackUrl)
         btnPlayPause = findViewById(R.id.btnPlayPause)
 
-        adapter = ArrayAdapter(this, R.layout.simple_list_item_white, tracksList)
+        adapter = TrackAdapter(this, tracksList)
         lvTracks.adapter = adapter
 
         loadTracks()
 
-        // Обычное нажатие — включить трек
         lvTracks.setOnItemClickListener { _, _, position, _ ->
-            if (position < trackUrls.size) playMusic(trackUrls[position])
+            if (position < tracksList.size) playMusic(tracksList[position].url)
         }
 
-        // Долгое нажатие — меню редактирования
         lvTracks.setOnItemLongClickListener { _, _, position, _ ->
             showTrackOptionsDialog(position)
             true
@@ -68,7 +77,8 @@ class PlaylistActivity : AppCompatActivity() {
             val url = etUrl.text.toString().trim()
             if (url.isEmpty()) return@setOnClickListener
             val title = url.substringAfterLast("/").take(20)
-            addTrackToServer(title, "Неизвестен", "Пользователь", url)
+            // Пока cover_url пустая (добавим позже)
+            addTrackToServer(title, "Неизвестен", "Пользователь", url, "")
             etUrl.text.clear()
         }
 
@@ -87,10 +97,41 @@ class PlaylistActivity : AppCompatActivity() {
         }
     }
 
+    private inner class TrackAdapter(context: Context, private val tracks: List<Track>) : BaseAdapter() {
+        private val inflater = LayoutInflater.from(context)
+
+        override fun getCount(): Int = tracks.size
+        override fun getItem(position: Int): Any = tracks[position]
+        override fun getItemId(position: Int): Long = position.toLong()
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+            val view = convertView ?: inflater.inflate(R.layout.item_track, parent, false)
+            val track = tracks[position]
+
+            val ivCover = view.findViewById<ImageView>(R.id.ivCover)
+            val tvTitle = view.findViewById<TextView>(R.id.tvTrackTitle)
+            val tvArtist = view.findViewById<TextView>(R.id.tvTrackArtist)
+            val tvPlay = view.findViewById<TextView>(R.id.tvPlayIcon)
+
+            tvTitle.text = track.title
+            tvArtist.text = track.artist
+            tvPlay.text = "⋮" // Три точки, чтобы было понятно, что можно зажать
+
+            if (!track.coverUrl.isNullOrEmpty()) {
+                Glide.with(context).load(track.coverUrl).into(ivCover)
+            } else {
+                // Если нет обложки — ставим системную иконку ноты
+                ivCover.setImageResource(android.R.drawable.ic_media_play)
+                ivCover.setBackgroundColor(0xFF333333.toInt())
+            }
+            return view
+        }
+    }
+
     private fun showTrackOptionsDialog(position: Int) {
         val options = arrayOf("Изменить название", "Удалить трек")
         AlertDialog.Builder(this)
-            .setTitle(tracksList[position])
+            .setTitle(tracksList[position].title)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showRenameDialog(position)
@@ -101,8 +142,8 @@ class PlaylistActivity : AppCompatActivity() {
     }
 
     private fun showRenameDialog(position: Int) {
-        val trackId = trackIds[position]
-        val currentTitle = tracksList[position].substringAfter("▶ ").substringBefore(" - ")
+        val trackId = tracksList[position].id
+        val currentTitle = tracksList[position].title
         
         val input = EditText(this)
         input.setText(currentTitle)
@@ -120,7 +161,7 @@ class PlaylistActivity : AppCompatActivity() {
     }
 
     private fun showDeleteDialog(position: Int) {
-        val trackId = trackIds[position]
+        val trackId = tracksList[position].id
         AlertDialog.Builder(this)
             .setTitle("Удалить трек?")
             .setMessage("Трек будет удален из плейлиста.")
@@ -202,13 +243,15 @@ class PlaylistActivity : AppCompatActivity() {
                             val json = JSONObject(responseBody)
                             val tracks = json.getJSONArray("tracks")
                             tracksList.clear()
-                            trackUrls.clear()
-                            trackIds.clear()
                             for (i in 0 until tracks.length()) {
                                 val track = tracks.getJSONObject(i)
-                                trackIds.add(track.getString("id"))
-                                tracksList.add("▶ ${track.getString("title")} - ${track.getString("artist")}")
-                                trackUrls.add(track.optString("url", ""))
+                                tracksList.add(Track(
+                                    id = track.getString("id"),
+                                    title = track.getString("title"),
+                                    artist = track.getString("artist"),
+                                    url = track.optString("url", ""),
+                                    coverUrl = track.optString("cover_url", null)
+                                ))
                             }
                             adapter.notifyDataSetChanged()
                         } catch (e: Exception) {}
@@ -218,12 +261,13 @@ class PlaylistActivity : AppCompatActivity() {
         })
     }
 
-    private fun addTrackToServer(title: String, artist: String, addedBy: String, url: String) {
+    private fun addTrackToServer(title: String, artist: String, addedBy: String, url: String, coverUrl: String) {
         val jsonBody = JSONObject().apply {
             put("title", title)
             put("artist", artist)
             put("added_by", addedBy)
             put("url", url)
+            put("cover_url", coverUrl)
         }
 
         val request = Request.Builder()
