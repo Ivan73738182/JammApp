@@ -68,19 +68,18 @@
         android:padding="12dp"
         android:layout_marginTop="8dp">
 
-        <!-- Кнопка плей/пауза -->
-        <Button
+        <!-- Кнопка плей/пауза (теперь ImageButton) -->
+        <ImageButton
             android:id="@+id/btnPlayPause"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:text="⏸"
-            android:textSize="20sp"
-            android:textColor="#121212"
+            android:src="@drawable/ic_pause"
             android:background="@drawable/btn_neon_cyan"
-            android:stateListAnimator="@null"
-            android:layout_marginEnd="12dp"/>
+            android:scaleType="centerInside"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Play/Pause"/>
 
-        <!-- Информация о треке (название и артист) -->
+        <!-- Информация о треке -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"

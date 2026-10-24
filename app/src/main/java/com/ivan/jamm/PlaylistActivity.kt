@@ -30,7 +30,7 @@ class PlaylistActivity : AppCompatActivity() {
     
     private val tracksList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
-    private lateinit var btnPlayPause: Button
+    private lateinit var btnPlayPause: ImageButton
     private lateinit var tvNowPlayingTitle: TextView
     private lateinit var tvNowPlayingArtist: TextView
 
@@ -43,7 +43,7 @@ class PlaylistActivity : AppCompatActivity() {
 
             tvNowPlayingTitle.text = title
             tvNowPlayingArtist.text = artist
-            btnPlayPause.text = if (isPlaying) "⏸" else "▶"
+            btnPlayPause.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
         }
     }
 
@@ -107,7 +107,6 @@ class PlaylistActivity : AppCompatActivity() {
                     val url = input.text.toString().trim()
                     if (url.isNotEmpty()) {
                         val parsedTitle = extractTitleFromUrl(url)
-                        // Сразу добавляем, без второго окна (для скорости)
                         addTrackToServer(parsedTitle, "Неизвестен", userName, url, "")
                     }
                 }
