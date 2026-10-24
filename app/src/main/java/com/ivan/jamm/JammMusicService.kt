@@ -35,14 +35,13 @@ class JammMusicService : Service() {
         if (!musicIsPlaying) stopSelf()
     }
 
-    // Таймер для обновления времени в плеере
     private val progressHandler = Handler(Looper.getMainLooper())
     private val progressRunnable = object : Runnable {
         override fun run() {
             if (mediaPlayer != null && musicIsPlaying) {
                 sendProgressUpdate()
             }
-            progressHandler.postDelayed(this, 1000) // Каждую секунду
+            progressHandler.postDelayed(this, 1000)
         }
     }
 
@@ -96,6 +95,28 @@ class JammMusicService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val action = intent?.action
+        if (action == "PREV") {
+            if (trackPosition > 0) {
+                trackPosition--
+                playTrack(trackPosition)
+            }
+            return START_STICKY
+        }
+        if (action == "NEXT") {
+            if (trackPosition < urlsList.size - 1) {
+                trackPosition++
+                playTrack(trackPosition)
+            }
+            return START_STICKY
+        }
+        if (action == "SEEK") {
+            val seekTo = intent.getIntExtra("SEEK_TO", 0)
+            mediaPlayer?.seekTo(seekTo)
+            sendProgressUpdate()
+            return START_STICKY
+        }
+
         val urls = intent?.getStringArrayListExtra("URLS")
         val titles = intent?.getStringArrayListExtra("TITLES")
         val artists = intent?.getStringArrayListExtra("ARTISTS")
@@ -147,14 +168,14 @@ class JammMusicService : Service() {
                 )
                 setDataSource(this@JammMusicService, Uri.parse(urlsList[position]))
                 setOnPreparedListener {
-                    sendPlayerUpdate()
-                    start()
                     musicIsPlaying = true
+                    sendPlayerUpdate()
+                    sendProgressUpdate()
+                    start()
                     stopHandler.removeCallbacks(stopRunnable)
-                    progressHandler.post(progressRunnable) // Запускаем таймер
+                    progressHandler.post(progressRunnable)
                     updateNotification()
                     updateMediaSession()
-                    sendProgressUpdate()
                 }
                 setOnCompletionListener {
                     if (trackPosition < urlsList.size - 1) {
@@ -189,14 +210,12 @@ class JammMusicService : Service() {
         val artist = artistsList.getOrNull(trackPosition) ?: "Неизвестен"
         val coverUrl = coversList.getOrNull(trackPosition)
 
-        // Мини-плеер
         val playerIntent = Intent("PLAYER_UPDATE")
         playerIntent.putExtra("TITLE", title)
         playerIntent.putExtra("ARTIST", artist)
         playerIntent.putExtra("IS_PLAYING", musicIsPlaying)
         LocalBroadcastManager.getInstance(this).sendBroadcast(playerIntent)
 
-        // Полный плеер
         val fullIntent = Intent("PLAYER_UPDATE_FULL")
         fullIntent.putExtra("TITLE", title)
         fullIntent.putExtra("ARTIST", artist)

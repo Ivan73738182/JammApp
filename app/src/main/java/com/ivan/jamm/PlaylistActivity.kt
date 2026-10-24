@@ -21,7 +21,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 import java.net.URLDecoder
-import java.net.URLEncoder
 
 class PlaylistActivity : AppCompatActivity() {
     private var roomCode: String = ""
@@ -114,10 +113,8 @@ class PlaylistActivity : AppCompatActivity() {
                     val url = input.text.toString().trim()
                     if (url.isNotEmpty()) {
                         val parsedTitle = extractTitleFromUrl(url)
-                        // Ищем обложку через iTunes
-                        fetchCoverFromItunes(parsedTitle) { coverUrl ->
-                            addTrackToServer(parsedTitle, "Неизвестен", userName, url, coverUrl)
-                        }
+                        // Добавляем трек с пустой обложкой
+                        addTrackToServer(parsedTitle, "Неизвестен", userName, url, "")
                     }
                 }
                 .setNegativeButton("Отмена", null)
@@ -157,47 +154,6 @@ class PlaylistActivity : AppCompatActivity() {
             return URLDecoder.decode(lastPart, "UTF-8")
         } catch (e: Exception) {
             return "Неизвестный трек"
-        }
-    }
-
-    // Поиск обложки в iTunes API
-    private fun fetchCoverFromItunes(query: String, callback: (String) -> Unit) {
-        try {
-            val encodedQuery = URLEncoder.encode(query, "UTF-8")
-            val url = "https://itunes.apple.com/search?term=$encodedQuery&entity=song&limit=1"
-            
-            val request = Request.Builder().url(url).get().build()
-            client.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    runOnUiThread { callback("") }
-                }
-                override fun onResponse(call: Call, response: Response) {
-                    val responseBody = response.body?.string()
-                    runOnUiThread {
-                        if (response.isSuccessful && responseBody != null) {
-                            try {
-                                val json = JSONObject(responseBody)
-                                val results = json.getJSONArray("results")
-                                if (results.length() > 0) {
-                                    val first = results.getJSONObject(0)
-                                    // Берем картинку 100x100 и меняем на 500x500 для качества
-                                    var coverUrl = first.optString("artworkUrl100", "")
-                                    coverUrl = coverUrl.replace("100x100", "500x500")
-                                    callback(coverUrl)
-                                } else {
-                                    callback("")
-                                }
-                            } catch (e: Exception) {
-                                callback("")
-                            }
-                        } else {
-                            callback("")
-                        }
-                    }
-                }
-            })
-        } catch (e: Exception) {
-            callback("")
         }
     }
 

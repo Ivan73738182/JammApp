@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -23,7 +21,6 @@ class FullPlayerActivity : AppCompatActivity() {
 
     private var isUserSeeking = false
 
-    // Обновление времени
     private val progressReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (isUserSeeking) return
@@ -39,7 +36,6 @@ class FullPlayerActivity : AppCompatActivity() {
         }
     }
 
-    // Обновление данных трека
     private val playerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val title = intent?.getStringExtra("TITLE") ?: "Неизвестно"
@@ -89,7 +85,6 @@ class FullPlayerActivity : AppCompatActivity() {
             startService(intent)
         }
 
-        // Кнопки переключения треков
         btnPrev.setOnClickListener {
             val intent = Intent(this, JammMusicService::class.java).apply {
                 action = "PREV"
@@ -104,7 +99,6 @@ class FullPlayerActivity : AppCompatActivity() {
             startService(intent)
         }
 
-        // Перемотка
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -127,6 +121,12 @@ class FullPlayerActivity : AppCompatActivity() {
                 }
             }
         })
+
+        // Запрашиваем данные у сервиса при открытии
+        val intent = Intent(this, JammMusicService::class.java).apply {
+            action = "REQUEST_UPDATE"
+        }
+        startService(intent)
     }
 
     private fun formatTime(millis: Int): String {
