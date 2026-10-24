@@ -14,6 +14,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media.app.NotificationCompat.MediaStyle
 import com.bumptech.glide.Glide
 
@@ -27,8 +28,6 @@ class JammMusicService : Service() {
     private var artistsList = ArrayList<String>()
     private var coversList = ArrayList<String>()
     private var trackPosition = 0
-    
-    // Запоминаем код комнаты для шторки
     private var currentRoomCode: String = "000000"
 
     private val stopHandler = Handler(Looper.getMainLooper())
@@ -85,7 +84,7 @@ class JammMusicService : Service() {
         val artists = intent?.getStringArrayListExtra("ARTISTS")
         val covers = intent?.getStringArrayListExtra("COVERS")
         val pos = intent?.getIntExtra("CURRENT_POSITION", 0) ?: 0
-        val room = intent?.getStringExtra("ROOM_CODE") // <-- Получаем код комнаты
+        val room = intent?.getStringExtra("ROOM_CODE")
 
         if (room != null) {
             currentRoomCode = room
@@ -219,11 +218,10 @@ class JammMusicService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Передаем код комнаты в PlaylistActivity при клике
         val contentIntent = PendingIntent.getActivity(
             this, 0, Intent(this, PlaylistActivity::class.java).apply {
                 putExtra("ROOM_CODE", currentRoomCode)
-                putExtra("USER_NAME", "Ваня") // или как-то определять
+                putExtra("USER_NAME", "Ваня")
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -245,6 +243,13 @@ class JammMusicService : Service() {
                     .setShowActionsInCompactView(0, 1, 2)
             )
             .build()
+
+        // Отправляем данные в мини-плеер
+        val playerIntent = Intent("PLAYER_UPDATE")
+        playerIntent.putExtra("TITLE", title)
+        playerIntent.putExtra("ARTIST", artist)
+        playerIntent.putExtra("IS_PLAYING", musicIsPlaying)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(playerIntent)
 
         startForeground(1, notification)
     }

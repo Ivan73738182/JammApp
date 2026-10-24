@@ -1,7 +1,9 @@
 package com.ivan.jamm
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -11,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -28,6 +31,21 @@ class PlaylistActivity : AppCompatActivity() {
     private val tracksList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
     private lateinit var btnPlayPause: Button
+    private lateinit var tvNowPlayingTitle: TextView
+    private lateinit var tvNowPlayingArtist: TextView
+
+    // Приемник для обновления мини-плеера
+    private val playerReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val title = intent?.getStringExtra("TITLE") ?: "Ничего не играет"
+            val artist = intent?.getStringExtra("ARTIST") ?: ""
+            val isPlaying = intent?.getBooleanExtra("IS_PLAYING", false) ?: false
+
+            tvNowPlayingTitle.text = title
+            tvNowPlayingArtist.text = artist
+            btnPlayPause.text = if (isPlaying) "⏸" else "▶"
+        }
+    }
 
     data class Track(
         val id: String,
@@ -41,14 +59,16 @@ class PlaylistActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            playerReceiver, IntentFilter("PLAYER_UPDATE")
+        )
+
         roomCode = intent.getStringExtra("ROOM_CODE") ?: "000000"
         userName = intent.getStringExtra("USER_NAME") ?: "Гость"
         
         val tvCode = findViewById<TextView>(R.id.tvPlaylistCode)
-        // Убрали надпись про удержание
         tvCode.text = "Код комнаты: $roomCode"
 
-        // Логика выхода по долгому нажатию осталась
         tvCode.setOnLongClickListener {
             getSharedPreferences("JammPrefs", MODE_PRIVATE).edit().remove("SAVED_ROOM_CODE").apply()
             val intent = Intent(this, MainActivity::class.java)
@@ -60,8 +80,9 @@ class PlaylistActivity : AppCompatActivity() {
 
         val lvTracks = findViewById<ListView>(R.id.lvTracks)
         val btnAdd = findViewById<Button>(R.id.btnAddTrack)
-        val etUrl = findViewById<EditText>(R.id.etTrackUrl)
         btnPlayPause = findViewById(R.id.btnPlayPause)
+        tvNowPlayingTitle = findViewById(R.id.tvNowPlayingTitle)
+        tvNowPlayingArtist = findViewById(R.id.tvNowPlayingArtist)
 
         adapter = TrackAdapter(this, tracksList)
         lvTracks.adapter = adapter
@@ -75,25 +96,20 @@ class PlaylistActivity : AppCompatActivity() {
         }
 
         btnAdd.setOnClickListener {
-            val url = etUrl.text.toString().trim()
-            if (url.isEmpty()) return@setOnClickListener
-
-            val parsedTitle = extractTitleFromUrl(url)
-
             val input = EditText(this)
-            input.hint = "Название песни (необязательно)"
-            input.setText(parsedTitle)
-            
+            input.hint = "Вставьте ссылку на песню"
+            input.inputType = InputType.TYPE_CLASS_TEXT
+
             AlertDialog.Builder(this)
                 .setTitle("Добавить трек")
-                .setMessage("Проверьте название песни:")
                 .setView(input)
                 .setPositiveButton("Добавить") { _, _ ->
-                    val title = input.text.toString().trim()
-                    val finalTitle = if (title.isEmpty()) "Без названия" else title
-                    
-                    addTrackToServer(finalTitle, "Неизвестен", userName, url, "")
-                    etUrl.text.clear()
+                    val url = input.text.toString().trim()
+                    if (url.isNotEmpty()) {
+                        val parsedTitle = extractTitleFromUrl(url)
+                        // Сразу добавляем, без второго окна (для скорости)
+                        addTrackToServer(parsedTitle, "Неизвестен", userName, url, "")
+                    }
                 }
                 .setNegativeButton("Отмена", null)
                 .show()
@@ -103,6 +119,11 @@ class PlaylistActivity : AppCompatActivity() {
             val intent = Intent(this, JammMusicService::class.java)
             startService(intent)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(playerReceiver)
     }
 
     private fun extractTitleFromUrl(url: String): String {
@@ -120,15 +141,10 @@ class PlaylistActivity : AppCompatActivity() {
                     }
                 }
             }
-            
             var lastPart = url.substringAfterLast("/")
             lastPart = lastPart.substringBefore("?")
             lastPart = lastPart.substringBeforeLast(".")
-            
-            if (lastPart.isEmpty() || lastPart == "index") {
-                return "Неизвестный трек"
-            }
-            
+            if (lastPart.isEmpty() || lastPart == "index") return "Неизвестный трек"
             return URLDecoder.decode(lastPart, "UTF-8")
         } catch (e: Exception) {
             return "Неизвестный трек"
