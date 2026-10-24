@@ -48,12 +48,14 @@ class JammMusicService : Service() {
                     mediaPlayer?.start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
+                    sendPlayerUpdate()
                     updateNotification()
                 }
                 override fun onPause() {
                     mediaPlayer?.pause()
                     musicIsPlaying = false
                     startStopTimer()
+                    sendPlayerUpdate()
                     updateNotification()
                 }
                 override fun onSkipToNext() {
@@ -108,6 +110,7 @@ class JammMusicService : Service() {
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
                 }
+                sendPlayerUpdate()
                 updateNotification()
             }
         }
@@ -129,6 +132,8 @@ class JammMusicService : Service() {
                 )
                 setDataSource(this@JammMusicService, Uri.parse(urlsList[position]))
                 setOnPreparedListener {
+                    // Отправляем данные ДО старта, чтобы название появилось сразу
+                    sendPlayerUpdate()
                     start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
@@ -142,12 +147,14 @@ class JammMusicService : Service() {
                     } else {
                         musicIsPlaying = false
                         startStopTimer()
+                        sendPlayerUpdate()
                         updateNotification()
                     }
                 }
                 setOnErrorListener { _, _, _ ->
                     musicIsPlaying = false
                     startStopTimer()
+                    sendPlayerUpdate()
                     updateNotification()
                     true
                 }
@@ -158,6 +165,28 @@ class JammMusicService : Service() {
             startStopTimer()
             updateNotification()
         }
+    }
+
+    private fun sendPlayerUpdate() {
+        if (trackPosition >= titlesList.size) return
+        val title = titlesList[trackPosition]
+        val artist = artistsList.getOrNull(trackPosition) ?: "Неизвестен"
+        val coverUrl = coversList.getOrNull(trackPosition)
+
+        // Мини-плеер
+        val playerIntent = Intent("PLAYER_UPDATE")
+        playerIntent.putExtra("TITLE", title)
+        playerIntent.putExtra("ARTIST", artist)
+        playerIntent.putExtra("IS_PLAYING", musicIsPlaying)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(playerIntent)
+
+        // Полный плеер
+        val fullIntent = Intent("PLAYER_UPDATE_FULL")
+        fullIntent.putExtra("TITLE", title)
+        fullIntent.putExtra("ARTIST", artist)
+        fullIntent.putExtra("COVER_URL", coverUrl)
+        fullIntent.putExtra("IS_PLAYING", musicIsPlaying)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(fullIntent)
     }
 
     private fun updateMediaSession() {
@@ -243,21 +272,6 @@ class JammMusicService : Service() {
                     .setShowActionsInCompactView(0, 1, 2)
             )
             .build()
-
-        // Отправляем данные в мини-плеер
-        val playerIntent = Intent("PLAYER_UPDATE")
-        playerIntent.putExtra("TITLE", title)
-        playerIntent.putExtra("ARTIST", artist)
-        playerIntent.putExtra("IS_PLAYING", musicIsPlaying)
-        LocalBroadcastManager.getInstance(this).sendBroadcast(playerIntent)
-
-        // Отправляем данные в полноэкранный плеер
-        val fullIntent = Intent("PLAYER_UPDATE_FULL")
-        fullIntent.putExtra("TITLE", title)
-        fullIntent.putExtra("ARTIST", artist)
-        fullIntent.putExtra("COVER_URL", coversList.getOrNull(trackPosition))
-        fullIntent.putExtra("IS_PLAYING", musicIsPlaying)
-        LocalBroadcastManager.getInstance(this).sendBroadcast(fullIntent)
 
         startForeground(1, notification)
     }
