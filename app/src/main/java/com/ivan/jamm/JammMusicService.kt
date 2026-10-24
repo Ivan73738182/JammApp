@@ -35,6 +35,17 @@ class JammMusicService : Service() {
         if (!musicIsPlaying) stopSelf()
     }
 
+    // Таймер для обновления времени в плеере
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private val progressRunnable = object : Runnable {
+        override fun run() {
+            if (mediaPlayer != null && musicIsPlaying) {
+                sendProgressUpdate()
+            }
+            progressHandler.postDelayed(this, 1000) // Каждую секунду
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -69,6 +80,10 @@ class JammMusicService : Service() {
                         trackPosition--
                         playTrack(trackPosition)
                     }
+                }
+                override fun onSeekTo(pos: Long) {
+                    mediaPlayer?.seekTo(pos.toInt())
+                    sendProgressUpdate()
                 }
             })
             isActive = true
@@ -132,13 +147,14 @@ class JammMusicService : Service() {
                 )
                 setDataSource(this@JammMusicService, Uri.parse(urlsList[position]))
                 setOnPreparedListener {
-                    // Отправляем данные ДО старта, чтобы название появилось сразу
                     sendPlayerUpdate()
                     start()
                     musicIsPlaying = true
                     stopHandler.removeCallbacks(stopRunnable)
+                    progressHandler.post(progressRunnable) // Запускаем таймер
                     updateNotification()
                     updateMediaSession()
+                    sendProgressUpdate()
                 }
                 setOnCompletionListener {
                     if (trackPosition < urlsList.size - 1) {
@@ -189,6 +205,16 @@ class JammMusicService : Service() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(fullIntent)
     }
 
+    private fun sendProgressUpdate() {
+        if (mediaPlayer == null) return
+        val current = mediaPlayer!!.currentPosition
+        val duration = mediaPlayer!!.duration
+        val intent = Intent("PLAYER_PROGRESS")
+        intent.putExtra("CURRENT_TIME", current)
+        intent.putExtra("DURATION", duration)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
     private fun updateMediaSession() {
         if (trackPosition >= titlesList.size) return
 
@@ -215,7 +241,8 @@ class JammMusicService : Service() {
                     PlaybackStateCompat.ACTION_PLAY or 
                     PlaybackStateCompat.ACTION_PAUSE or
                     PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                    PlaybackStateCompat.ACTION_SEEK_TO
                 )
                 .setState(
                     if (musicIsPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
@@ -291,6 +318,7 @@ class JammMusicService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopHandler.removeCallbacks(stopRunnable)
+        progressHandler.removeCallbacks(progressRunnable)
         mediaPlayer?.release()
         mediaPlayer = null
         mediaSession.release()
