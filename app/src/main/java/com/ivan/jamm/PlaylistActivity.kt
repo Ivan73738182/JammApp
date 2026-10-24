@@ -113,8 +113,7 @@ class PlaylistActivity : AppCompatActivity() {
                     val url = input.text.toString().trim()
                     if (url.isNotEmpty()) {
                         val parsedTitle = extractTitleFromUrl(url)
-                        // Добавляем трек с пустой обложкой
-                        addTrackToServer(parsedTitle, "Неизвестен", userName, url, "")
+                        checkUrlAndAdd(url, parsedTitle, userName)
                     }
                 }
                 .setNegativeButton("Отмена", null)
@@ -155,6 +154,46 @@ class PlaylistActivity : AppCompatActivity() {
         } catch (e: Exception) {
             return "Неизвестный трек"
         }
+    }
+
+    // Новая функция: проверка ссылки перед добавлением
+    private fun checkUrlAndAdd(url: String, title: String, addedBy: String) {
+        Toast.makeText(this, "Проверяем ссылку...", Toast.LENGTH_SHORT).show()
+        
+        val request = Request.Builder()
+            .url(url)
+            .head() // Запрашиваем только заголовки, чтобы проверить доступность
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    AlertDialog.Builder(this@PlaylistActivity)
+                        .setTitle("Ошибка")
+                        .setMessage("Не удалось подключиться к ссылке. Проверьте интернет или ссылку.")
+                        .setPositiveButton("ОК", null)
+                        .show()
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    // Ссылка рабочая, добавляем
+                    runOnUiThread {
+                        addTrackToServer(title, "Неизвестен", addedBy, url, "")
+                    }
+                } else {
+                    runOnUiThread {
+                        AlertDialog.Builder(this@PlaylistActivity)
+                            .setTitle("Некорректная ссылка")
+                            .setMessage("Ссылка не ведёт на музыкальный файл (код ${response.code}). Попробуйте другую.")
+                            .setPositiveButton("ОК", null)
+                            .show()
+                    }
+                }
+                response.close()
+            }
+        })
     }
 
     private inner class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
