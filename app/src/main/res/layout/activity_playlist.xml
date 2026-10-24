@@ -5,7 +5,6 @@
     android:background="@drawable/bg_gradient"
     android:padding="16dp">
 
-    <!-- Верхняя панель с заголовком и кнопкой + -->
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
@@ -31,10 +30,12 @@
             android:textSize="28sp"
             android:textColor="#121212"
             android:background="@drawable/btn_neon_cyan"
-            android:stateListAnimator="@null"/>
+            android:stateListAnimator="@null"
+            android:padding="0dp"
+            android:includeFontPadding="false"
+            android:gravity="center"/>
     </LinearLayout>
 
-    <!-- Код комнаты -->
     <TextView
         android:id="@+id/tvPlaylistCode"
         android:layout_width="wrap_content"
@@ -45,7 +46,6 @@
         android:layout_below="@id/topBar"
         android:layout_marginBottom="16dp" />
 
-    <!-- Список треков -->
     <ListView
         android:id="@+id/lvTracks"
         android:layout_width="match_parent"
@@ -56,7 +56,6 @@
         android:dividerHeight="1dp"
         android:paddingBottom="8dp"/>
 
-    <!-- Мини-плеер внизу -->
     <LinearLayout
         android:id="@+id/bottomPlayer"
         android:layout_width="match_parent"
@@ -68,7 +67,6 @@
         android:padding="12dp"
         android:layout_marginTop="8dp">
 
-        <!-- Кнопка плей/пауза (теперь ImageButton) -->
         <ImageButton
             android:id="@+id/btnPlayPause"
             android:layout_width="48dp"
@@ -79,7 +77,6 @@
             android:layout_marginEnd="12dp"
             android:contentDescription="Play/Pause"/>
 
-        <!-- Информация о треке -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"

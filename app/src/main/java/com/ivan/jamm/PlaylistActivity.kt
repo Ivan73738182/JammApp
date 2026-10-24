@@ -34,7 +34,6 @@ class PlaylistActivity : AppCompatActivity() {
     private lateinit var tvNowPlayingTitle: TextView
     private lateinit var tvNowPlayingArtist: TextView
 
-    // Приемник для обновления мини-плеера
     private val playerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val title = intent?.getStringExtra("TITLE") ?: "Ничего не играет"
@@ -83,6 +82,14 @@ class PlaylistActivity : AppCompatActivity() {
         btnPlayPause = findViewById(R.id.btnPlayPause)
         tvNowPlayingTitle = findViewById(R.id.tvNowPlayingTitle)
         tvNowPlayingArtist = findViewById(R.id.tvNowPlayingArtist)
+
+        // Открытие полного плеера по клику на мини-плеер
+        tvNowPlayingTitle.setOnClickListener {
+            startActivity(Intent(this, FullPlayerActivity::class.java))
+        }
+        tvNowPlayingArtist.setOnClickListener {
+            startActivity(Intent(this, FullPlayerActivity::class.java))
+        }
 
         adapter = TrackAdapter(this, tracksList)
         lvTracks.adapter = adapter

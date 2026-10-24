@@ -251,6 +251,14 @@ class JammMusicService : Service() {
         playerIntent.putExtra("IS_PLAYING", musicIsPlaying)
         LocalBroadcastManager.getInstance(this).sendBroadcast(playerIntent)
 
+        // Отправляем данные в полноэкранный плеер
+        val fullIntent = Intent("PLAYER_UPDATE_FULL")
+        fullIntent.putExtra("TITLE", title)
+        fullIntent.putExtra("ARTIST", artist)
+        fullIntent.putExtra("COVER_URL", coversList.getOrNull(trackPosition))
+        fullIntent.putExtra("IS_PLAYING", musicIsPlaying)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(fullIntent)
+
         startForeground(1, notification)
     }
 
