@@ -82,11 +82,10 @@ class PlaylistActivity : AppCompatActivity() {
         btnPlayPause = findViewById(R.id.btnPlayPause)
         tvNowPlayingTitle = findViewById(R.id.tvNowPlayingTitle)
         tvNowPlayingArtist = findViewById(R.id.tvNowPlayingArtist)
+        val bottomPlayer = findViewById<LinearLayout>(R.id.bottomPlayer)
 
-        tvNowPlayingTitle.setOnClickListener {
-            startActivity(Intent(this, FullPlayerActivity::class.java))
-        }
-        tvNowPlayingArtist.setOnClickListener {
+        // Клик по всему мини-плееру открывает полный плеер
+        bottomPlayer.setOnClickListener {
             startActivity(Intent(this, FullPlayerActivity::class.java))
         }
 
@@ -156,13 +155,12 @@ class PlaylistActivity : AppCompatActivity() {
         }
     }
 
-    // Новая функция: проверка ссылки перед добавлением
     private fun checkUrlAndAdd(url: String, title: String, addedBy: String) {
         Toast.makeText(this, "Проверяем ссылку...", Toast.LENGTH_SHORT).show()
         
         val request = Request.Builder()
             .url(url)
-            .head() // Запрашиваем только заголовки, чтобы проверить доступность
+            .head()
             .build()
 
         client.newCall(request).enqueue(object : Callback {
@@ -178,7 +176,6 @@ class PlaylistActivity : AppCompatActivity() {
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    // Ссылка рабочая, добавляем
                     runOnUiThread {
                         addTrackToServer(title, "Неизвестен", addedBy, url, "")
                     }
