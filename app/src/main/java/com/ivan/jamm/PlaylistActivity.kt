@@ -6,10 +6,12 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -19,6 +21,8 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URLDecoder
 
@@ -29,10 +33,12 @@ class PlaylistActivity : AppCompatActivity() {
     private val client = OkHttpClient()
     
     private val tracksList = mutableListOf<Track>()
+    private val filteredList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
     private lateinit var btnPlayPause: ImageButton
     private lateinit var tvNowPlayingTitle: TextView
     private lateinit var tvNowPlayingArtist: TextView
+    private lateinit var etSearch: EditText
 
     private val playerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -82,22 +88,30 @@ class PlaylistActivity : AppCompatActivity() {
         btnPlayPause = findViewById(R.id.btnPlayPause)
         tvNowPlayingTitle = findViewById(R.id.tvNowPlayingTitle)
         tvNowPlayingArtist = findViewById(R.id.tvNowPlayingArtist)
+        etSearch = findViewById(R.id.etSearch)
         val bottomPlayer = findViewById<LinearLayout>(R.id.bottomPlayer)
 
-        // Клик по всему мини-плееру открывает полный плеер
         bottomPlayer.setOnClickListener {
             startActivity(Intent(this, FullPlayerActivity::class.java))
         }
 
-        adapter = TrackAdapter(this, tracksList)
+        adapter = TrackAdapter(this, filteredList)
         lvTracks.adapter = adapter
+
+        // Поиск
+        etSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                filterTracks(s.toString())
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
 
         loadTracks()
 
-        lvTracks.setOnItemClickListener { _, _, position, _ ->
-            if (position < tracksList.size) {
-                playMusic(position)
-            }
+        lvTracks.setOnItemClickListener { _, view, position, _ ->
+            view.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in))
+            playMusic(position)
         }
 
         btnAdd.setOnClickListener {
@@ -123,6 +137,21 @@ class PlaylistActivity : AppCompatActivity() {
             val intent = Intent(this, JammMusicService::class.java)
             startService(intent)
         }
+    }
+
+    private fun filterTracks(query: String) {
+        filteredList.clear()
+        if (query.isEmpty()) {
+            filteredList.addAll(tracksList)
+        } else {
+            for (track in tracksList) {
+                if (track.title.lowercase().contains(query.lowercase()) || 
+                    track.artist.lowercase().contains(query.lowercase())) {
+                    filteredList.add(track)
+                }
+            }
+        }
+        adapter.notifyDataSetChanged()
     }
 
     override fun onDestroy() {
@@ -158,22 +187,17 @@ class PlaylistActivity : AppCompatActivity() {
     private fun checkUrlAndAdd(url: String, title: String, addedBy: String) {
         Toast.makeText(this, "Проверяем ссылку...", Toast.LENGTH_SHORT).show()
         
-        val request = Request.Builder()
-            .url(url)
-            .head()
-            .build()
-
+        val request = Request.Builder().url(url).head().build()
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     AlertDialog.Builder(this@PlaylistActivity)
                         .setTitle("Ошибка")
-                        .setMessage("Не удалось подключиться к ссылке. Проверьте интернет или ссылку.")
+                        .setMessage("Не удалось подключиться к ссылке.")
                         .setPositiveButton("ОК", null)
                         .show()
                 }
             }
-
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     runOnUiThread {
@@ -183,7 +207,7 @@ class PlaylistActivity : AppCompatActivity() {
                     runOnUiThread {
                         AlertDialog.Builder(this@PlaylistActivity)
                             .setTitle("Некорректная ссылка")
-                            .setMessage("Ссылка не ведёт на музыкальный файл (код ${response.code}). Попробуйте другую.")
+                            .setMessage("Ссылка не ведёт на музыкальный файл.")
                             .setPositiveButton("ОК", null)
                             .show()
                     }
@@ -230,21 +254,22 @@ class PlaylistActivity : AppCompatActivity() {
     }
 
     private fun showTrackOptionsDialog(position: Int) {
-        val options = arrayOf("Изменить название", "Удалить трек")
+        val options = arrayOf("Изменить название", "Удалить трек", "Скачать в память")
         AlertDialog.Builder(this)
-            .setTitle(tracksList[position].title)
+            .setTitle(filteredList[position].title)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showRenameDialog(position)
                     1 -> showDeleteDialog(position)
+                    2 -> downloadTrack(filteredList[position])
                 }
             }
             .show()
     }
 
     private fun showRenameDialog(position: Int) {
-        val trackId = tracksList[position].id
-        val currentTitle = tracksList[position].title
+        val trackId = filteredList[position].id
+        val currentTitle = filteredList[position].title
         
         val input = EditText(this)
         input.setText(currentTitle)
@@ -262,13 +287,40 @@ class PlaylistActivity : AppCompatActivity() {
     }
 
     private fun showDeleteDialog(position: Int) {
-        val trackId = tracksList[position].id
+        val trackId = filteredList[position].id
         AlertDialog.Builder(this)
             .setTitle("Удалить трек?")
             .setMessage("Трек будет удален из плейлиста.")
             .setPositiveButton("Удалить") { _, _ -> deleteTrack(trackId) }
             .setNegativeButton("Отмена", null)
             .show()
+    }
+
+    private fun downloadTrack(track: Track) {
+        Toast.makeText(this, "Скачиваем...", Toast.LENGTH_SHORT).show()
+        val request = Request.Builder().url(track.url).build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка скачивания", Toast.LENGTH_SHORT).show() }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val body = response.body
+                    if (body != null) {
+                        try {
+                            val fileName = track.title.replace("[^a-zA-Z0-9а-яА-Я ]".toRegex(), "") + ".mp3"
+                            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), fileName)
+                            val fos = FileOutputStream(file)
+                            fos.write(body.bytes())
+                            fos.close()
+                            runOnUiThread { Toast.makeText(this@PlaylistActivity, "Скачано в Music!", Toast.LENGTH_SHORT).show() }
+                        } catch (e: Exception) {
+                            runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка файла", Toast.LENGTH_SHORT).show() }
+                        }
+                    }
+                }
+            }
+        })
     }
 
     private fun renameTrack(trackId: String, newTitle: String) {
@@ -313,7 +365,8 @@ class PlaylistActivity : AppCompatActivity() {
             val artists = ArrayList<String>()
             val covers = ArrayList<String>()
             
-            for (t in tracksList) {
+            // Берем из отфильтрованного списка
+            for (t in filteredList) {
                 urls.add(t.url)
                 titles.add(t.title)
                 artists.add(t.artist)
@@ -362,6 +415,8 @@ class PlaylistActivity : AppCompatActivity() {
                                     coverUrl = track.optString("cover_url", null)
                                 ))
                             }
+                            filteredList.clear()
+                            filteredList.addAll(tracksList)
                             adapter.notifyDataSetChanged()
                         } catch (e: Exception) {}
                     }
