@@ -188,7 +188,7 @@ class PlaylistActivity : AppCompatActivity() {
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
                                     val fileName = "track_${System.currentTimeMillis()}.mp3"
-                                    supabase.storage.from("music").upload(fileName, tempFile)
+                                    supabase.storage.from("music").upload(fileName, tempFile.readBytes())
                                     val publicUrl = supabase.storage.from("music").publicUrl(fileName)
                                     
                                     runOnUiThread {
@@ -236,7 +236,7 @@ class PlaylistActivity : AppCompatActivity() {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             val cloudName = "track_${System.currentTimeMillis()}_${fileName}"
-                            supabase.storage.from("music").upload(cloudName, tempFile)
+                            supabase.storage.from("music").upload(cloudName, tempFile.readBytes())
                             val publicUrl = supabase.storage.from("music").publicUrl(cloudName)
                             
                             runOnUiThread {
