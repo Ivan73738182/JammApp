@@ -213,7 +213,7 @@ class PlaylistActivity : AppCompatActivity() {
     }
 
     private fun openFilePicker() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        val intent = Intent(this, PickMusicActivity::class.java)
         intent.type = "audio/*"
         startActivityForResult(intent, 100)
     }
@@ -221,40 +221,42 @@ class PlaylistActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 100 && resultCode == RESULT_OK) {
-            val uri = data?.data
-            if (uri != null) {
-                val fileName = getFileName(uri)
-                val tempFile = File(cacheDir, fileName)
-                
-                try {
-                    val inputStream: InputStream? = contentResolver.openInputStream(uri)
-                    val outputStream = FileOutputStream(tempFile)
-                    inputStream?.copyTo(outputStream)
-                    inputStream?.close()
-                    outputStream.close()
+            val uris = data?.getStringArrayListExtra("SELECTED_URIS")
+            if (uris != null) {
+                for (uriString in uris) {
+                    val uri = android.net.Uri.parse(uriString)
+                    val fileName = getFileName(uri)
+                    val tempFile = File(cacheDir, fileName)
                     
-                    CoroutineScope(Dispatchers.IO).launch {
-                        try {
-                            val cloudName = "track_${System.currentTimeMillis()}_${fileName}"
-                            supabase.storage.from("music").upload(cloudName, tempFile.readBytes())
-                            val publicUrl = supabase.storage.from("music").publicUrl(cloudName)
-                            
-                            runOnUiThread {
-                                Toast.makeText(this@PlaylistActivity, "Загружено в облако!", Toast.LENGTH_SHORT).show()
-                                addTrackToServer(fileName.substringBeforeLast("."), "Неизвестен", userName, publicUrl, "")
-                                tempFile.delete()
+                    try {
+                        val inputStream: InputStream? = contentResolver.openInputStream(uri)
+                        val outputStream = FileOutputStream(tempFile)
+                        inputStream?.copyTo(outputStream)
+                        inputStream?.close()
+                        outputStream.close()
+                        
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val cloudName = "track_${System.currentTimeMillis()}_${fileName}"
+                                supabase.storage.from("music").upload(cloudName, tempFile.readBytes())
+                                val publicUrl = supabase.storage.from("music").publicUrl(cloudName)
+                                
+                                runOnUiThread {
+                                    addTrackToServer(fileName.substringBeforeLast("."), "Неизвестен", userName, publicUrl, "")
+                                    tempFile.delete()
+                                }
+                            } catch (e: Exception) {
+                                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
                             }
-                        } catch (e: Exception) {
-                            runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
                         }
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "Ошибка копирования", Toast.LENGTH_SHORT).show()
                     }
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Ошибка копирования", Toast.LENGTH_SHORT).show()
                 }
+                Toast.makeText(this, "Добавлено ${uris.size} треков", Toast.LENGTH_SHORT).show()
             }
         }
     }
-
     private fun getFileName(uri: Uri): String {
         var name = "track.mp3"
         val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
