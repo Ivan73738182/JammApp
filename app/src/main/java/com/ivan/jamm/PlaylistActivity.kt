@@ -21,8 +21,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
-import io.github.jan.supabase.storage.storage
 import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -108,9 +108,12 @@ class PlaylistActivity : AppCompatActivity() {
         tvNowPlayingTitle = findViewById(R.id.tvNowPlayingTitle)
         tvNowPlayingArtist = findViewById(R.id.tvNowPlayingArtist)
         etSearch = findViewById(R.id.etSearch)
-        val bottomPlayer = findViewById<LinearLayout>(R.id.bottomPlayer)
 
-        bottomPlayer.setOnClickListener {
+        // Открытие полного плеера по нажатию на текст, а не на кнопку
+        tvNowPlayingTitle.setOnClickListener {
+            startActivity(Intent(this, FullPlayerActivity::class.java))
+        }
+        tvNowPlayingArtist.setOnClickListener {
             startActivity(Intent(this, FullPlayerActivity::class.java))
         }
 
