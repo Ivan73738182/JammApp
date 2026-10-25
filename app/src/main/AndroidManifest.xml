@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
+        android:name=".CrashHandler"
         android:allowBackup="true"
         android:label="Jamm"
         android:icon="@mipmap/ic_launcher"
@@ -23,6 +24,7 @@
         <activity android:name=".PlaylistActivity" />
         <activity android:name=".JoinRoomActivity" />
         <activity android:name=".FullPlayerActivity" />
+        <activity android:name=".CrashActivity" />
         
         <service android:name=".JammMusicService" android:foregroundServiceType="mediaPlayback" />
         
