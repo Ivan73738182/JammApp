@@ -202,7 +202,7 @@ class PlaylistActivity : AppCompatActivity() {
                                         tempFile.delete()
                                     }
                                 } catch (e: Exception) {
-                                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
+                                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.toString()}", Toast.LENGTH_LONG).show() }
                                 }
                             }
                         } catch (e: Exception) {
@@ -249,7 +249,7 @@ class PlaylistActivity : AppCompatActivity() {
                                     tempFile.delete()
                                 }
                             } catch (e: Exception) {
-                                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
+                                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.toString()}", Toast.LENGTH_LONG).show() }
                             }
                         }
                     } catch (e: Exception) {
