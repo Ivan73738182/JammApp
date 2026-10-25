@@ -15,10 +15,6 @@ object SupabaseConfig {
         ) {
             install(Storage)
             install(Auth)
-            // Явно добавляем заголовок Authorization для Storage
-            defaultRequest {
-                header("Authorization", "Bearer $KEY")
-            }
         }
     }
 }

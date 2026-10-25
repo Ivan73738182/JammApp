@@ -19,8 +19,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +39,8 @@ class PlaylistActivity : AppCompatActivity() {
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
     
+    // Используем клиент из SupabaseConfig
+    private val supabase = SupabaseConfig.client
 
     private val tracksList = mutableListOf<Track>()
     private val filteredList = mutableListOf<Track>()
@@ -73,6 +73,15 @@ class PlaylistActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
+
+        // Анонимный вход в Supabase для доступа к Storage
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                supabase.auth.signInAnonymously()
+            } catch (e: Exception) {
+                // Игнорируем, если вход не удался (возможно, не включен в настройках)
+            }
+        }
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
             playerReceiver, IntentFilter("PLAYER_UPDATE")
@@ -182,8 +191,8 @@ class PlaylistActivity : AppCompatActivity() {
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
                                     val fileName = "track_${System.currentTimeMillis()}.mp3"
-                                    SupabaseConfig.client.storage.from("music").upload(fileName, tempFile.readBytes())
-                                    val publicUrl = SupabaseConfig.client.storage.from("music").publicUrl(fileName)
+                                    supabase.storage.from("music").upload(fileName, tempFile.readBytes())
+                                    val publicUrl = supabase.storage.from("music").publicUrl(fileName)
                                     
                                     runOnUiThread {
                                         Toast.makeText(this@PlaylistActivity, "Загружено в облако!", Toast.LENGTH_SHORT).show()
@@ -192,7 +201,7 @@ class PlaylistActivity : AppCompatActivity() {
                                         tempFile.delete()
                                     }
                                 } catch (e: Exception) {
-                                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки в облако: ${e.message}", Toast.LENGTH_LONG).show() }
+                                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
                                 }
                             }
                         } catch (e: Exception) {
@@ -208,7 +217,6 @@ class PlaylistActivity : AppCompatActivity() {
 
     private fun openFilePicker() {
         val intent = Intent(this, PickMusicActivity::class.java)
-        intent.type = "audio/*"
         startActivityForResult(intent, 100)
     }
 
@@ -218,7 +226,7 @@ class PlaylistActivity : AppCompatActivity() {
             val uris = data?.getStringArrayListExtra("SELECTED_URIS")
             if (uris != null) {
                 for (uriString in uris) {
-                    val uri = android.net.Uri.parse(uriString)
+                    val uri = Uri.parse(uriString)
                     val fileName = getFileName(uri)
                     val tempFile = File(cacheDir, fileName)
                     
@@ -232,8 +240,8 @@ class PlaylistActivity : AppCompatActivity() {
                         CoroutineScope(Dispatchers.IO).launch {
                             try {
                                 val cloudName = "track_${System.currentTimeMillis()}_${fileName}"
-                                SupabaseConfig.client.storage.from("music").upload(cloudName, tempFile.readBytes())
-                                val publicUrl = SupabaseConfig.client.storage.from("music").publicUrl(cloudName)
+                                supabase.storage.from("music").upload(cloudName, tempFile.readBytes())
+                                val publicUrl = supabase.storage.from("music").publicUrl(cloudName)
                                 
                                 runOnUiThread {
                                     addTrackToServer(fileName.substringBeforeLast("."), "Неизвестен", userName, publicUrl, "")
@@ -251,6 +259,7 @@ class PlaylistActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun getFileName(uri: Uri): String {
         var name = "track.mp3"
         val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
