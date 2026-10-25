@@ -41,12 +41,6 @@ class PlaylistActivity : AppCompatActivity() {
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
     
-    private val supabase = createSupabaseClient(
-        supabaseUrl = SupabaseConfig.URL,
-        supabaseKey = SupabaseConfig.KEY
-    ) {
-        install(Storage)
-    }
 
     private val tracksList = mutableListOf<Track>()
     private val filteredList = mutableListOf<Track>()
@@ -188,8 +182,8 @@ class PlaylistActivity : AppCompatActivity() {
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
                                     val fileName = "track_${System.currentTimeMillis()}.mp3"
-                                    supabase.storage.from("music").upload(fileName, tempFile.readBytes())
-                                    val publicUrl = supabase.storage.from("music").publicUrl(fileName)
+                                    SupabaseConfig.client.storage.from("music").upload(fileName, tempFile.readBytes())
+                                    val publicUrl = SupabaseConfig.client.storage.from("music").publicUrl(fileName)
                                     
                                     runOnUiThread {
                                         Toast.makeText(this@PlaylistActivity, "Загружено в облако!", Toast.LENGTH_SHORT).show()
@@ -238,8 +232,8 @@ class PlaylistActivity : AppCompatActivity() {
                         CoroutineScope(Dispatchers.IO).launch {
                             try {
                                 val cloudName = "track_${System.currentTimeMillis()}_${fileName}"
-                                supabase.storage.from("music").upload(cloudName, tempFile.readBytes())
-                                val publicUrl = supabase.storage.from("music").publicUrl(cloudName)
+                                SupabaseConfig.client.storage.from("music").upload(cloudName, tempFile.readBytes())
+                                val publicUrl = SupabaseConfig.client.storage.from("music").publicUrl(cloudName)
                                 
                                 runOnUiThread {
                                     addTrackToServer(fileName.substringBeforeLast("."), "Неизвестен", userName, publicUrl, "")
