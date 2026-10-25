@@ -5,7 +5,7 @@ import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.storage.Storage
 
 object SupabaseConfig {
-    const val URL = "https://awtgvknefkfqjhpmsytm.supabase.co"
+    const val URL = "https://awtgvknvekfqjhpmsytm.supabase.co"
     const val KEY = "sb_publishable_YLl37cw2qFIxEqd9DJ1-QQ_GAQxTpzq"
 
     val client by lazy {
