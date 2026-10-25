@@ -4,9 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.database.Cursor
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
+import android.provider.OpenableColumns
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
@@ -17,6 +19,12 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -24,6 +32,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.URLDecoder
 
 class PlaylistActivity : AppCompatActivity() {
@@ -32,6 +41,13 @@ class PlaylistActivity : AppCompatActivity() {
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
     
+    private val supabase = createSupabaseClient(
+        supabaseUrl = SupabaseConfig.URL,
+        supabaseKey = SupabaseConfig.KEY
+    ) {
+        install(Storage)
+    }
+
     private val tracksList = mutableListOf<Track>()
     private val filteredList = mutableListOf<Track>()
     private lateinit var adapter: TrackAdapter
@@ -114,21 +130,16 @@ class PlaylistActivity : AppCompatActivity() {
         }
 
         btnAdd.setOnClickListener {
-            val input = EditText(this)
-            input.hint = "Вставьте ссылку на песню"
-            input.inputType = InputType.TYPE_CLASS_TEXT
-
+            val options = arrayOf("Вставить ссылку", "Выбрать из памяти телефона")
             AlertDialog.Builder(this)
                 .setTitle("Добавить трек")
-                .setView(input)
-                .setPositiveButton("Добавить") { _, _ ->
-                    val url = input.text.toString().trim()
-                    if (url.isNotEmpty()) {
-                        val parsedTitle = extractTitleFromUrl(url)
-                        checkUrlAndAdd(url, parsedTitle, userName)
+                .setItems(options) { _, which ->
+                    if (which == 0) {
+                        showAddByUrlDialog()
+                    } else {
+                        openFilePicker()
                     }
                 }
-                .setNegativeButton("Отмена", null)
                 .show()
         }
 
@@ -136,6 +147,124 @@ class PlaylistActivity : AppCompatActivity() {
             val intent = Intent(this, JammMusicService::class.java)
             startService(intent)
         }
+    }
+
+    private fun showAddByUrlDialog() {
+        val input = EditText(this)
+        input.hint = "Вставьте ссылку на песню"
+        input.inputType = InputType.TYPE_CLASS_TEXT
+
+        AlertDialog.Builder(this)
+            .setTitle("Добавить по ссылке")
+            .setView(input)
+            .setPositiveButton("Добавить") { _, _ ->
+                val url = input.text.toString().trim()
+                if (url.isNotEmpty()) {
+                    downloadAndUpload(url)
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun downloadAndUpload(url: String) {
+        Toast.makeText(this, "Скачиваем и загружаем в облако...", Toast.LENGTH_SHORT).show()
+        
+        val request = Request.Builder().url(url).build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка сети", Toast.LENGTH_SHORT).show() }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val body = response.body
+                    if (body != null) {
+                        val tempFile = File(cacheDir, "temp_track.mp3")
+                        try {
+                            val fos = FileOutputStream(tempFile)
+                            fos.write(body.bytes())
+                            fos.close()
+                            
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    val fileName = "track_${System.currentTimeMillis()}.mp3"
+                                    supabase.storage.from("music").upload(fileName, tempFile)
+                                    val publicUrl = supabase.storage.from("music").publicUrl(fileName)
+                                    
+                                    runOnUiThread {
+                                        Toast.makeText(this@PlaylistActivity, "Загружено в облако!", Toast.LENGTH_SHORT).show()
+                                        val parsedTitle = extractTitleFromUrl(url)
+                                        addTrackToServer(parsedTitle, "Неизвестен", userName, publicUrl, "")
+                                        tempFile.delete()
+                                    }
+                                } catch (e: Exception) {
+                                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки в облако: ${e.message}", Toast.LENGTH_LONG).show() }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка файла", Toast.LENGTH_SHORT).show() }
+                        }
+                    }
+                } else {
+                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ссылка битая", Toast.LENGTH_SHORT).show() }
+                }
+            }
+        })
+    }
+
+    private fun openFilePicker() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.type = "audio/*"
+        startActivityForResult(intent, 100)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 100 && resultCode == RESULT_OK) {
+            val uri = data?.data
+            if (uri != null) {
+                val fileName = getFileName(uri)
+                val tempFile = File(cacheDir, fileName)
+                
+                try {
+                    val inputStream: InputStream? = contentResolver.openInputStream(uri)
+                    val outputStream = FileOutputStream(tempFile)
+                    inputStream?.copyTo(outputStream)
+                    inputStream?.close()
+                    outputStream.close()
+                    
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val cloudName = "track_${System.currentTimeMillis()}_${fileName}"
+                            supabase.storage.from("music").upload(cloudName, tempFile)
+                            val publicUrl = supabase.storage.from("music").publicUrl(cloudName)
+                            
+                            runOnUiThread {
+                                Toast.makeText(this@PlaylistActivity, "Загружено в облако!", Toast.LENGTH_SHORT).show()
+                                addTrackToServer(fileName.substringBeforeLast("."), "Неизвестен", userName, publicUrl, "")
+                                tempFile.delete()
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Ошибка копирования", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun getFileName(uri: Uri): String {
+        var name = "track.mp3"
+        val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val index = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index != -1) name = it.getString(index)
+            }
+        }
+        return name
     }
 
     private fun filterTracks(query: String) {
@@ -183,19 +312,6 @@ class PlaylistActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkUrlAndAdd(url: String, title: String, addedBy: String) {
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            AlertDialog.Builder(this@PlaylistActivity)
-                .setTitle("Некорректная ссылка")
-                .setMessage("Ссылка должна начинаться с http:// или https://")
-                .setPositiveButton("ОК", null)
-                .show()
-            return
-        }
-        
-        addTrackToServer(title, "Неизвестен", addedBy, url, "")
-    }
-
     private inner class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
         private val inflater = LayoutInflater.from(context)
 
@@ -233,14 +349,13 @@ class PlaylistActivity : AppCompatActivity() {
     }
 
     private fun showTrackOptionsDialog(position: Int) {
-        val options = arrayOf("Изменить название", "Удалить трек", "Скачать в память")
+        val options = arrayOf("Изменить название", "Удалить трек")
         AlertDialog.Builder(this)
             .setTitle(filteredList[position].title)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showRenameDialog(position)
                     1 -> showDeleteDialog(position)
-                    2 -> downloadTrack(filteredList[position])
                 }
             }
             .show()
@@ -273,33 +388,6 @@ class PlaylistActivity : AppCompatActivity() {
             .setPositiveButton("Удалить") { _, _ -> deleteTrack(trackId) }
             .setNegativeButton("Отмена", null)
             .show()
-    }
-
-    private fun downloadTrack(track: Track) {
-        Toast.makeText(this, "Скачиваем...", Toast.LENGTH_SHORT).show()
-        val request = Request.Builder().url(track.url).build()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка скачивания", Toast.LENGTH_SHORT).show() }
-            }
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val body = response.body
-                    if (body != null) {
-                        try {
-                            val fileName = track.title.replace("[^a-zA-Z0-9а-яА-Я ]".toRegex(), "") + ".mp3"
-                            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), fileName)
-                            val fos = FileOutputStream(file)
-                            fos.write(body.bytes())
-                            fos.close()
-                            runOnUiThread { Toast.makeText(this@PlaylistActivity, "Скачано в Music!", Toast.LENGTH_SHORT).show() }
-                        } catch (e: Exception) {
-                            runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка файла", Toast.LENGTH_SHORT).show() }
-                        }
-                    }
-                }
-            }
-        })
     }
 
     private fun renameTrack(trackId: String, newTitle: String) {
