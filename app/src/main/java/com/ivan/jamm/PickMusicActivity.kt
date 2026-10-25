@@ -1,8 +1,11 @@
 package com.ivan.jamm
 
+import android.Manifest
 import android.content.ContentUris
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
@@ -10,7 +13,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import java.io.File
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 class PickMusicActivity : AppCompatActivity() {
     private val musicList = mutableListOf<MusicItem>()
@@ -30,8 +34,12 @@ class PickMusicActivity : AppCompatActivity() {
         adapter = MusicAdapter(this, musicList)
         lvMusic.adapter = adapter
 
-        // Загружаем музыку
-        loadMusic()
+        // Запрашиваем разрешение
+        if (hasAudioPermission()) {
+            loadMusic()
+        } else {
+            requestAudioPermission()
+        }
 
         btnAdd.setOnClickListener {
             val selected = musicList.filter { it.isSelected }
@@ -40,7 +48,6 @@ class PickMusicActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             
-            // Возвращаем выбранные URI в PlaylistActivity
             val resultIntent = Intent()
             val uris = ArrayList<String>()
             for (item in selected) {
@@ -49,6 +56,33 @@ class PickMusicActivity : AppCompatActivity() {
             resultIntent.putStringArrayListExtra("SELECTED_URIS", uris)
             setResult(RESULT_OK, resultIntent)
             finish()
+        }
+    }
+
+    private fun hasAudioPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestAudioPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_MEDIA_AUDIO), 101)
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 101)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                loadMusic()
+            } else {
+                Toast.makeText(this, "Без разрешения мы не найдем музыку", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -112,14 +146,13 @@ class PickMusicActivity : AppCompatActivity() {
             tvTitle.text = item.title
             tvArtist.text = item.artist
 
-            cb.setOnCheckedChangeListener(null) // Сбрасываем старый слушатель
+            cb.setOnCheckedChangeListener(null)
             cb.isChecked = item.isSelected
 
             cb.setOnCheckedChangeListener { _, isChecked ->
                 item.isSelected = isChecked
             }
 
-            // Клик по всей строке тоже переключает галочку
             view.setOnClickListener {
                 cb.isChecked = !cb.isChecked
             }
