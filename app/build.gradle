@@ -51,4 +51,5 @@ dependencies {
     implementation 'androidx.media:media:1.7.0'
     implementation 'io.github.jan-tennert.supabase:storage-kt:2.6.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'io.ktor:ktor-client-okhttp:2.3.7'
 }
