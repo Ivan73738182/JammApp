@@ -98,7 +98,6 @@ class PlaylistActivity : AppCompatActivity() {
         adapter = TrackAdapter(this, filteredList)
         lvTracks.adapter = adapter
 
-        // Поиск
         etSearch.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -185,36 +184,16 @@ class PlaylistActivity : AppCompatActivity() {
     }
 
     private fun checkUrlAndAdd(url: String, title: String, addedBy: String) {
-        Toast.makeText(this, "Проверяем ссылку...", Toast.LENGTH_SHORT).show()
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            AlertDialog.Builder(this@PlaylistActivity)
+                .setTitle("Некорректная ссылка")
+                .setMessage("Ссылка должна начинаться с http:// или https://")
+                .setPositiveButton("ОК", null)
+                .show()
+            return
+        }
         
-        val request = Request.Builder().url(url).head().build()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    AlertDialog.Builder(this@PlaylistActivity)
-                        .setTitle("Ошибка")
-                        .setMessage("Не удалось подключиться к ссылке.")
-                        .setPositiveButton("ОК", null)
-                        .show()
-                }
-            }
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    runOnUiThread {
-                        addTrackToServer(title, "Неизвестен", addedBy, url, "")
-                    }
-                } else {
-                    runOnUiThread {
-                        AlertDialog.Builder(this@PlaylistActivity)
-                            .setTitle("Некорректная ссылка")
-                            .setMessage("Ссылка не ведёт на музыкальный файл.")
-                            .setPositiveButton("ОК", null)
-                            .show()
-                    }
-                }
-                response.close()
-            }
-        })
+        addTrackToServer(title, "Неизвестен", addedBy, url, "")
     }
 
     private inner class TrackAdapter(private val context: Context, private val tracks: List<Track>) : BaseAdapter() {
@@ -365,7 +344,6 @@ class PlaylistActivity : AppCompatActivity() {
             val artists = ArrayList<String>()
             val covers = ArrayList<String>()
             
-            // Берем из отфильтрованного списка
             for (t in filteredList) {
                 urls.add(t.url)
                 titles.add(t.title)
