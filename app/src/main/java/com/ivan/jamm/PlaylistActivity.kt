@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.database.Cursor
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -20,7 +22,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import io.github.jan.supabase.storage.storage
-import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,6 +29,7 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -39,8 +41,6 @@ class PlaylistActivity : AppCompatActivity() {
     private var userName: String = "Гость"
     private val serverUrl = "https://jamm-vxy7.onrender.com"
     private val client = OkHttpClient()
-    
-    // Используем клиент из SupabaseConfig
     private val supabase = SupabaseConfig.client
 
     private val tracksList = mutableListOf<Track>()
@@ -75,13 +75,11 @@ class PlaylistActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
 
-        // Анонимный вход в Supabase для доступа к Storage
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 supabase.auth.signInAnonymously()
-            } catch (e: Exception) {
-                // Игнорируем, если вход не удался (возможно, не включен в настройках)
-            }
+                kotlinx.coroutines.delay(1000)
+            } catch (e: Exception) {}
         }
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -202,7 +200,7 @@ class PlaylistActivity : AppCompatActivity() {
                                         tempFile.delete()
                                     }
                                 } catch (e: Exception) {
-                                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.toString()}", Toast.LENGTH_LONG).show() }
+                                    runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
                                 }
                             }
                         } catch (e: Exception) {
@@ -240,16 +238,34 @@ class PlaylistActivity : AppCompatActivity() {
                         
                         CoroutineScope(Dispatchers.IO).launch {
                             try {
+                                // 1. Загружаем сам трек
                                 val cloudName = "track_${System.currentTimeMillis()}_${fileName}"
                                 supabase.storage.from("music").upload(cloudName, tempFile.readBytes())
                                 val publicUrl = supabase.storage.from("music").publicUrl(cloudName)
                                 
+                                // 2. Пытаемся извлечь обложку из файла
+                                var coverUrl = ""
+                                try {
+                                    val retriever = MediaMetadataRetriever()
+                                    retriever.setDataSource(tempFile.absolutePath)
+                                    val embeddedPicture = retriever.embeddedPicture
+                                    if (embeddedPicture != null) {
+                                        // Загружаем обложку в облако
+                                        val coverName = "cover_${System.currentTimeMillis()}.jpg"
+                                        supabase.storage.from("music").upload(coverName, embeddedPicture)
+                                        coverUrl = supabase.storage.from("music").publicUrl(coverName)
+                                    }
+                                    retriever.release()
+                                } catch (e: Exception) {
+                                    // Если обложки нет или ошибка — оставляем пустую
+                                }
+                                
                                 runOnUiThread {
-                                    addTrackToServer(fileName.substringBeforeLast("."), "Неизвестен", userName, publicUrl, "")
+                                    addTrackToServer(fileName.substringBeforeLast("."), "Неизвестен", userName, publicUrl, coverUrl)
                                     tempFile.delete()
                                 }
                             } catch (e: Exception) {
-                                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.toString()}", Toast.LENGTH_LONG).show() }
+                                runOnUiThread { Toast.makeText(this@PlaylistActivity, "Ошибка загрузки: ${e.message}", Toast.LENGTH_LONG).show() }
                             }
                         }
                     } catch (e: Exception) {
